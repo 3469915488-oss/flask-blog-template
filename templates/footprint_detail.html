@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}足迹 - {{ site_name }}{% endblock %}
+{% block content %}
+<div class="page-narrow">
+    <a href="{{ url_for('footprint') }}" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:16px">
+        <i data-lucide="arrow-left" style="width:14px;height:14px"></i> 返回足迹
+    </a>
+
+    <div class="fp-detail">
+        {% if fp.image_url %}
+        <div class="fp-detail-image">
+            <img src="{{ fp.image_url }}" alt="{{ fp.location or '' }}">
+        </div>
+        {% endif %}
+
+        <div class="fp-detail-body">
+            {% if fp.location %}
+            <div class="fp-detail-location">
+                <i data-lucide="map-pin" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i>
+                {{ fp.location }}
+            </div>
+            {% endif %}
+            <div class="fp-detail-date">{{ fp.date }}</div>
+            {% if fp.description %}
+            <div class="fp-detail-desc">{{ fp.description }}</div>
+            {% endif %}
+        </div>
+
+        <div class="fp-detail-actions">
+            <a href="{{ url_for('footprint_edit', fid=fp.id) }}" class="btn-del-icon" title="编辑"><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+            <form action="{{ url_for('footprint_delete', fid=fp.id) }}" method="POST" onsubmit="return confirm('确认删除这条足迹？')">
+                <button type="submit" class="btn-del-icon" title="删除"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_head %}
+<style>
+.fp-detail{max-width:640px;margin:0 auto}
+.fp-detail-image{margin-bottom:20px;text-align:center}
+.fp-detail-image img{max-width:100%;max-height:70vh;border-radius:12px;box-shadow:var(--neu-raise)}
+.fp-detail-body{padding:0 4px}
+.fp-detail-location{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px}
+.fp-detail-date{font-size:12px;color:var(--text-muted);margin-bottom:12px}
+.fp-detail-desc{font-size:14px;line-height:1.7;color:var(--text-secondary);margin-bottom:20px}
+.fp-detail-actions{padding-top:16px;border-top:1px solid var(--divider)}
+</style>
+{% endblock %}
