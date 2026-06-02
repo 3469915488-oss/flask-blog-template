@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}写作 - {{ site_name }}{% endblock %}
+{% block content %}
+
+<section class="page-header">
+    <h1 class="page-title"><i data-lucide="pen-square"></i> 写作</h1>
+    <p class="page-desc">记录思考，沉淀文字</p>
+</section>
+
+<div class="writing-actions">
+    <a href="/editor" class="btn btn-primary btn-lg">
+        <i data-lucide="plus"></i> 新文章
+    </a>
+    <button type="button" id="new-card-btn" class="btn btn-lg" style="margin-left:10px">
+        <i data-lucide="folder-plus"></i> 新建卡片
+    </button>
+</div>
+
+{% if categories %}
+<div class="cat-grid" id="cat-grid">
+    {% for cat in categories %}
+    <a href="{{ url_for('writing_category', cat_id=cat.id) }}" class="cat-card reveal"
+       data-cat-id="{{ cat.id }}">
+        <div class="cat-card-icon">
+            <i data-lucide="folder"></i>
+        </div>
+        <h3 class="cat-card-name">{{ cat.name }}</h3>
+        {% if cat.description %}
+        <p class="cat-card-desc">{{ cat.description }}</p>
+        {% endif %}
+        <div class="cat-card-meta">
+            <span class="cat-card-count">{{ cat.article_count }} 篇</span>
+            {% if cat.children_count > 0 %}
+            <span class="cat-card-children">{{ cat.children_count }} 子卡片</span>
+            {% endif %}
+        </div>
+        <span class="cat-card-enter">浏览 →</span>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
+    <i data-lucide="folder" style="width:32px;height:32px;margin-bottom:12px;"></i>
+    <p>还没有分类</p>
+    <button type="button" id="empty-new-card-btn" class="btn" style="margin-top:16px;display:inline-block;">
+        <i data-lucide="folder-plus"></i> 新建卡片
+    </button>
+</div>
+{% endif %}
+
+<!-- 新建卡片弹窗 -->
+<div class="modal-overlay" id="new-card-modal" style="display:none">
+    <div class="modal-box">
+        <h3 class="modal-title">新建卡片</h3>
+        <div class="modal-body">
+            <label>卡片名称</label>
+            <input type="text" id="modal-card-name" placeholder="给卡片起个名字" autofocus>
+            <label style="margin-top:12px;display:block">父级分类（可选）</label>
+            <select id="modal-card-parent" style="width:100%">
+                <option value="">— 顶级卡片 —</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="modal-card-cancel" class="btn">取消</button>
+            <button type="button" id="modal-card-confirm" class="btn btn-primary">创建</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+lucide.createIcons();
+
+(function(){
+    var modal = document.getElementById('new-card-modal');
+    var nameInput = document.getElementById('modal-card-name');
+    var parentSelect = document.getElementById('modal-card-parent');
+    var confirmBtn = document.getElementById('modal-card-confirm');
+    var cancelBtn = document.getElementById('modal-card-cancel');
+
+    function openModal(){
+        modal.style.display = 'flex';
+        nameInput.value = '';
+        nameInput.focus();
+    }
+
+    function closeModal(){
+        modal.style.display = 'none';
+    }
+
+    // Open modal triggers
+    var newBtn = document.getElementById('new-card-btn');
+    if(newBtn) newBtn.onclick = openModal;
+    var emptyBtn = document.getElementById('empty-new-card-btn');
+    if(emptyBtn) emptyBtn.onclick = openModal;
+
+    cancelBtn.onclick = closeModal;
+    nameInput.onkeydown = function(e){
+        if(e.key === 'Enter') confirmBtn.click();
+        if(e.key === 'Escape') cancelBtn.click();
+    };
+
+    // Click outside modal to close
+    modal.onclick = function(e){
+        if(e.target === modal) closeModal();
+    };
+
+    confirmBtn.onclick = function(){
+        var name = nameInput.value.trim();
+        if(!name) return alert('请输入卡片名称');
+        var parent_id = parentSelect.value ? parseInt(parentSelect.value) : null;
+
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '创建中…';
+
+        fetch('/api/category/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name, parent_id: parent_id})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if(d.error) return alert(d.error);
+            // Reload to show new card
+            window.location.reload();
+        })
+        .catch(function(){
+            alert('创建失败，请重试');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '创建';
+        });
+    };
+})();
+</script>
+{% endblock %}
