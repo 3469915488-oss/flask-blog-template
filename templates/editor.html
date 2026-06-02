@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+{% block title %}{% if article %}编辑{% else %}写文章{% endif %} - {{ site_name }}{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+<style>
+/* Quill editor height */
+#editor-wrap { margin-bottom: 16px; }
+#editor-wrap .ql-container { min-height: 360px; font-size: 15px; }
+#editor-wrap .ql-editor { min-height: 360px; line-height: 1.8; }
+#editor-wrap .ql-toolbar { border-radius: 6px 6px 0 0; border-color: #E5E5E7; }
+#editor-wrap .ql-container { border-radius: 0 0 6px 6px; border-color: #E5E5E7; }
+/* Custom one-click format button */
+.ql-toolbar .ql-custom{width:auto;padding:3px 8px;font-size:12px;color:var(--accent,#A8703F);font-weight:500;font-family:var(--font-sans);background:none;border:none;cursor:pointer;outline:none}
+.ql-toolbar .ql-custom:hover{color:var(--accent-hover,#8C5E32);background:var(--accent-light,rgba(168,112,63,0.08));border-radius:4px}
+.ql-toolbar .ql-custom:active{color:var(--accent-hover,#8C5E32)}
+/* Editor paragraph indent */
+.ql-editor p{text-indent:2em}
+</style>
+{% endblock %}
+{% block content %}
+<div class="editor-page">
+    <h1 class="page-title">{% if article %}编辑文章{% else %}写文章{% endif %}</h1>
+
+    <form method="POST" id="editor-form">
+        <div class="form-row">
+            <div class="form-group flex-3">
+                <label>标题</label>
+                <input type="text" name="title" value="{{ article.title if article else '' }}" placeholder="文章标题" required autofocus>
+            </div>
+            <div class="form-group flex-1">
+                <label>分类 <button type="button" id="add-cat-btn" class="btn-sm-link" title="新建分类" style="font-size:11px;border:none;background:none;color:var(--accent);cursor:pointer;padding:0;margin-left:4px">+ 新建</button></label>
+                <div style="display:flex;gap:6px;align-items:stretch">
+                    <select name="category_id" style="flex:1">
+                        <option value="">无</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if article and article.category_id == cat.id %}selected{% endif %}>{% if cat.depth > 0 %}{{ '　' * cat.depth }}├ {% endif %}{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="add-cat-form" style="display:none;margin-top:6px">
+                    <div style="display:flex;gap:6px">
+                        <input type="text" id="new-cat-name" placeholder="分类名称" style="flex:1;padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--surface);outline:none">
+                        <button type="button" id="confirm-cat-btn" class="btn btn-sm" style="padding:4px 12px;font-size:12px">创建</button>
+                        <button type="button" id="cancel-cat-btn" class="btn btn-sm" style="padding:4px 12px;font-size:12px">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>摘要</label>
+            <div style="display:flex;gap:6px">
+                <input type="text" name="summary" value="{{ article.summary if article else '' }}" placeholder="一句话概括" style="flex:1">
+                <button type="button" id="ai-summarize-btn" class="btn btn-sm" title="AI 自动生成摘要和标签" style="white-space:nowrap;padding:8px 14px;font-size:12px">
+                    <i data-lucide="sparkles" style="width:13px;height:13px"></i> AI 摘要
+                </button>
+            </div>
+            <span id="ai-summarize-status" style="font-size:11px;color:var(--text-muted);display:none;margin-top:4px"></span>
+        </div>
+
+        <div class="form-group">
+            <label>标签（逗号分隔）</label>
+            <input type="text" name="tags" value="{{ article.tags if article else '' }}" placeholder="法律, 技术, 随笔">
+        </div>
+
+        <label class="featured-toggle">
+            <input type="checkbox" name="featured" value="1" {% if article and article.featured %}checked{% endif %}>
+            <i data-lucide="star" style="width:14px;height:14px"></i> 标记为精选文章
+        </label>
+
+        <div class="form-group">
+            <label>正文</label>
+            <div id="editor-wrap">
+                <div id="quill-editor">{{ article.content|safe if article else '' }}</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+                <button type="button" id="format-btn" class="btn btn-sm" style="font-size:12px;color:var(--accent,#A8703F)"><i data-lucide="wand-2" style="width:13px;height:13px"></i> 一键排版</button>
+                <div id="format-toast" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 24px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:opacity 0.3s;pointer-events:none"></div>
+            </div>
+            <textarea name="content" id="content-hidden" hidden></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>封面图片</label>
+            <div class="upload-area" id="cover-upload-area">
+                <p>点击上传封面图</p>
+                <input type="file" id="cover-file-input" accept="image/*" hidden>
+            </div>
+            <input type="text" id="cover_image" name="cover_image" value="{{ article.cover_image if article else '' }}" placeholder="或粘贴图片URL" style="width:100%;margin-top:8px">
+            <div id="cover-preview" class="mt-8">
+                {% if article and article.cover_image %}
+                <img src="{{ article.cover_image }}" style="max-height:180px;border-radius:6px">
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% if article %}保存{% else %}发布{% endif %}</button>
+            <a href="/" class="btn">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<script>
+var quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'align': ['', 'center', 'right', 'justify'] }],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            ['blockquote', 'code-block'],
+            ['link', 'image'],
+            ['clean']
+        ]
+    },
+    placeholder: '开始写作...'
+});
+
+// Image handler for Quill: upload then insert
+var toolbar = quill.getModule('toolbar');
+toolbar.addHandler('image', function() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.click();
+    input.onchange = function() {
+        var file = input.files[0];
+        if (!file) return;
+        var fd = new FormData();
+        fd.append('file', file);
+        fetch('/upload', {method:'POST', body:fd})
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) return alert(d.error);
+                var range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'image', d.url);
+                quill.setSelection(range.index + 1);
+            })
+            .catch(e => alert('上传失败'));
+    };
+});
+
+// Submit: clean + copy Quill content to hidden textarea
+// (cleanHTML defined below in the formatting IIFE — onsubmit moved there too)
+// Cover image upload (separate from editor content)
+document.getElementById('cover-upload-area').onclick = function() {
+    document.getElementById('cover-file-input').click();
+};
+document.getElementById('cover-file-input').onchange = function() {
+    var file = this.files[0];
+    if (!file) return;
+    var fd = new FormData();
+    fd.append('file', file);
+    fetch('/upload', {method:'POST', body:fd})
+        .then(r => r.json())
+        .then(d => {
+            if (d.error) return alert(d.error);
+            document.getElementById('cover_image').value = d.url;
+            document.getElementById('cover-preview').innerHTML = '<img src="'+d.url+'" style="max-height:180px;border-radius:6px">';
+        })
+        .catch(e => alert('上传失败'));
+};
+
+// Inline category creation
+(function(){
+    var addBtn = document.getElementById('add-cat-btn');
+    var form = document.getElementById('add-cat-form');
+    var input = document.getElementById('new-cat-name');
+    var confirmBtn = document.getElementById('confirm-cat-btn');
+    var cancelBtn = document.getElementById('cancel-cat-btn');
+    var select = document.querySelector('select[name="category_id"]');
+    if(!addBtn || !form) return;
+
+    addBtn.onclick = function(){ form.style.display = 'block'; input.focus(); };
+    cancelBtn.onclick = function(){ form.style.display = 'none'; input.value = ''; };
+    input.onkeydown = function(e){ if(e.key==='Enter') confirmBtn.click(); if(e.key==='Escape') cancelBtn.click(); };
+
+    confirmBtn.onclick = function(){
+        var name = input.value.trim();
+        if(!name) return alert('请输入分类名称');
+        fetch('/admin/category/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'name='+encodeURIComponent(name)+'&description='
+        }).then(function(r){
+            if(r.redirected){
+                window.location.reload();
+            } else if(r.status === 400){
+                return r.text().then(function(t){ alert(t); });
+            }
+        }).catch(function(){ alert('创建失败'); });
+    };
+})();
+
+// ── AI Formatting (replaces old cleanHTML-based one-click format) ──
+(function(){
+    // Keep cleanHTML for onsubmit fallback
+    function cleanHTML(html){
+        var d = document.createElement('div');
+        d.innerHTML = html;
+
+        // Strip inline style pollution (keep text-align + text-indent)
+        var all = d.querySelectorAll('*');
+        for(var i=0;i<all.length;i++){
+            var el = all[i];
+            if(!el.getAttribute('style')) continue;
+            if(/mso-/.test(el.getAttribute('style'))){
+                el.removeAttribute('style');
+                continue;
+            }
+            var keepAlign = /text-align\s*:\s*(center|right|left|justify)/i;
+            var keepIndent = /text-indent\s*:\s*[^;]+/i;
+            var styleStr = el.getAttribute('style');
+            var newStyle = [];
+            var am = styleStr.match(keepAlign);
+            if(am) newStyle.push('text-align:'+am[1]);
+            var im = styleStr.match(keepIndent);
+            if(im) newStyle.push(im[0]);
+            el.setAttribute('style', newStyle.join(';'));
+        }
+
+        // Remove empty paragraphs (keep <p><br></p> — Quill uses these as placeholders)
+        var ps = d.querySelectorAll('p');
+        for(var i=ps.length-1;i>=0;i--){
+            var p = ps[i];
+            if(p.textContent.trim() === '' && p.innerHTML.trim() === ''){
+                p.parentNode.removeChild(p);
+            }
+        }
+
+        return d.innerHTML;
+    }
+
+    function addIndent(html){
+        var d = document.createElement('div');
+        d.innerHTML = html;
+        var ps = d.querySelectorAll('p');
+        for(var i=0;i<ps.length;i++){
+            // Convert Quill alignment classes (ql-align-*) to inline style
+            var cls = ps[i].getAttribute('class') || '';
+            var alignMatch = cls.match(/\bql-align-(center|right|justify)\b/);
+            if(alignMatch){
+                var newCls = cls.replace(/\bql-align-(center|right|justify)\b/g, '').trim();
+                if(newCls){
+                    ps[i].setAttribute('class', newCls);
+                } else {
+                    ps[i].removeAttribute('class');
+                }
+                var s = ps[i].getAttribute('style') || '';
+                if(s.indexOf('text-align') === -1){
+                    s = s ? s + ';text-align:' + alignMatch[1] : 'text-align:' + alignMatch[1];
+                    ps[i].setAttribute('style', s);
+                }
+            }
+            // Add text-indent (but respect existing text-align)
+            var s = ps[i].getAttribute('style') || '';
+            if(s.indexOf('text-indent') === -1){
+                s = s ? s+';text-indent:2em' : 'text-indent:2em';
+                ps[i].setAttribute('style', s);
+            }
+        }
+        return d.innerHTML;
+    }
+
+    // ── Submit handler: cleanHTML as final safety net ──
+    document.getElementById('editor-form').onsubmit = function() {
+        var raw = quill.root.innerHTML;
+        var cleaned = cleanHTML(raw);
+        var indented = addIndent(cleaned || raw);
+        document.getElementById('content-hidden').value = indented;
+    };
+
+    // ── Format button: call AI API ──
+    var formatBtn = document.getElementById('format-btn');
+    var toast = document.getElementById('format-toast');
+    if(!formatBtn) return;
+
+    function showToast(msg, type){
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        toast.style.opacity = '1';
+        if(type === 'success'){
+            toast.style.background = '#5C614D';
+            toast.style.color = '#fff';
+        } else if(type === 'error'){
+            toast.style.background = '#B85C4A';
+            toast.style.color = '#fff';
+        } else {
+            toast.style.background = 'var(--surface, #FDF8F0)';
+            toast.style.color = 'var(--text-muted, #8C7A6A)';
+        }
+        setTimeout(function(){
+            toast.style.opacity = '0';
+            setTimeout(function(){ toast.style.display = 'none'; }, 300);
+        }, 3000);
+    }
+
+    formatBtn.addEventListener('click', function(){
+        var html = quill.root.innerHTML;
+        var text = html.replace(/<[^>]+>/g,'').trim();
+        if(text.length < 10){
+            showToast('⚠️ 正文内容太少，请至少写一段话', 'error');
+            return;
+        }
+
+        formatBtn.disabled = true;
+        formatBtn.innerHTML = '<i data-lucide="loader" style="width:13px;height:13px;animation:spin 1s linear infinite"></i> AI 排版中…';
+        showToast('⏳ AI 正在优化排版…', 'loading');
+        if(typeof lucide!=='undefined') lucide.createIcons();
+
+        var fd = new FormData();
+        fd.append('content', html);
+
+        fetch('/api/format', {method:'POST', body:fd})
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if(d.error){
+                    showToast('❌ '+d.error, 'error');
+                    return;
+                }
+                if(d.content){
+                    var formatted = addIndent(d.content);
+                    quill.root.innerHTML = formatted;
+                    var ed = document.querySelector('.ql-editor');
+                    if(ed){
+                        ed.style.transition = 'background 0.3s';
+                        ed.style.background = 'rgba(168,112,63,0.1)';
+                        setTimeout(function(){ ed.style.background = ''; }, 600);
+                    }
+                }
+                showToast('✅ 排版完成 — 中英文空格、标点修正、空行合并', 'success');
+            })
+            .catch(function(){
+                showToast('❌ 网络请求失败，请稍后重试', 'error');
+            })
+            .finally(function(){
+                formatBtn.disabled = false;
+                formatBtn.innerHTML = '<i data-lucide="wand-2" style="width:13px;height:13px"></i> 一键排版';
+                formatBtn.style.color = 'var(--accent,#A8703F)';
+                if(typeof lucide!=='undefined') lucide.createIcons();
+            });
+    });
+})();
+
+// ── AI Summary button ──
+(function(){
+    var btn=document.getElementById('ai-summarize-btn');
+    var statusEl=document.getElementById('ai-summarize-status');
+    var summaryInput=document.querySelector('input[name="summary"]');
+    var tagsInput=document.querySelector('input[name="tags"]');
+    if(!btn) return;
+
+    btn.addEventListener('click', function(){
+        var title=document.querySelector('input[name="title"]').value.trim();
+        var html=quill.root.innerHTML;
+        var text=html.replace(/<[^>]+>/g,'').trim();
+        if(text.length<20){
+            statusEl.style.display='block';
+            statusEl.textContent='⚠️ 正文内容太少（至少 20 字），无法生成摘要';
+            statusEl.style.color='var(--danger)';
+            setTimeout(function(){statusEl.style.display='none'},3000);
+            return;
+        }
+        btn.disabled=true;
+        btn.innerHTML='<i data-lucide="loader" style="width:13px;height:13px;animation:spin 1s linear infinite"></i> 生成中…';
+        statusEl.style.display='block';
+        statusEl.textContent='⏳ 正在调用 AI 生成摘要和标签…';
+        statusEl.style.color='var(--text-muted)';
+        if(typeof lucide!=='undefined') lucide.createIcons();
+
+        var fd=new FormData();
+        fd.append('title', title);
+        fd.append('content', html);
+        fetch('/api/summarize', {method:'POST', body:fd})
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if(d.error){
+                    statusEl.textContent='❌ '+d.error;
+                    statusEl.style.color='var(--danger)';
+                    return;
+                }
+                if(d.summary) summaryInput.value=d.summary;
+                if(d.tags) tagsInput.value=d.tags;
+                statusEl.textContent='✅ 已自动填充摘要和标签';
+                statusEl.style.color='var(--green)';
+                setTimeout(function(){statusEl.style.display='none'},3000);
+            })
+            .catch(function(){
+                statusEl.textContent='❌ 网络请求失败，请稍后重试';
+                statusEl.style.color='var(--danger)';
+            })
+            .finally(function(){
+                btn.disabled=false;
+                btn.innerHTML='<i data-lucide="sparkles" style="width:13px;height:13px"></i> AI 摘要';
+                if(typeof lucide!=='undefined') lucide.createIcons();
+            });
+    });
+})();
+</script>
+{% endblock %}
