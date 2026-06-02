@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>验证 - {{ site_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+        font-family: 'Inter', 'PingFang SC', -apple-system, sans-serif;
+        background: #f8f7f4;
+        color: #1d1d1f;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-wrap {
+        text-align: center;
+        max-width: 360px;
+        padding: 40px 24px;
+    }
+    .login-icon {
+        margin-bottom: 20px;
+        color: #8b8b8b;
+    }
+    .login-wrap h1 {
+        font-family: 'Noto Serif SC', serif;
+        font-weight: 600;
+        font-size: 20px;
+        margin-bottom: 6px;
+        color: #1d1d1f;
+    }
+    .login-wrap p {
+        font-size: 13px;
+        color: #86868b;
+        margin-bottom: 28px;
+        line-height: 1.5;
+    }
+    .login-form input[type="password"] {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #d2d2d7;
+        border-radius: 10px;
+        font-size: 15px;
+        background: white;
+        color: #1d1d1f;
+        outline: none;
+        transition: border-color .2s;
+        text-align: center;
+        margin-bottom: 14px;
+    }
+    .login-form input[type="password"]:focus {
+        border-color: #8b8b8b;
+    }
+    .login-form button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 10px;
+        background: #1d1d1f;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background .2s;
+    }
+    .login-form button:hover {
+        background: #3a3a3a;
+    }
+    .login-error {
+        color: #b83b2c;
+        font-size: 13px;
+        margin-bottom: 14px;
+    }
+    .login-back {
+        margin-top: 24px;
+        font-size: 12px;
+    }
+    .login-back a {
+        color: #86868b;
+        text-decoration: none;
+    }
+    .login-back a:hover {
+        color: #1d1d1f;
+    }
+    </style>
+</head>
+<body>
+    <div class="login-wrap">
+        <div class="login-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+        </div>
+        <h1>{{ site_name }}</h1>
+        <p>输入密码查看动态</p>
+        <form class="login-form" method="POST">
+            {% if error %}
+            <div class="login-error">{{ error }}</div>
+            {% endif %}
+            <input type="password" name="password" placeholder="密码" autofocus>
+            <button type="submit">确认</button>
+        </form>
+        <div class="login-back">
+            <a href="/">← 回到首页</a>
+        </div>
+    </div>
+</body>
+</html>
