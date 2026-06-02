@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - {{ site_name }}{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+{% endblock %}
+{% block content %}
+<article class="article-detail reveal">
+    <nav class="breadcrumb" aria-label="面包屑导航">
+        <a href="/"><i data-lucide="home" style="width:12px;height:12px"></i></a>
+        <span class="bc-sep">/</span>
+        <a href="{{ url_for('writing') }}">写作</a>
+        {% if article.category_name and article.category_id %}
+        <span class="bc-sep">/</span>
+        <a href="{{ url_for('writing_category', cat_id=article.category_id) }}">{{ article.category_name }}</a>
+        {% endif %}
+        <span class="bc-sep">/</span>
+        <span class="bc-current">{{ article.title[:20] }}{% if article.title|length > 20 %}…{% endif %}</span>
+    </nav>
+
+    <header class="article-head">
+        <div class="article-meta">
+            {% if article.category_name and article.category_id %}
+            <a href="{{ url_for('writing_category', cat_id=article.category_id) }}" class="cat-tag">
+                <i data-lucide="folder" style="width:12px;height:12px;margin-right:3px;"></i>{{ article.category_name }}
+            </a>
+            {% elif article.category_name %}
+            <span class="cat-tag"><i data-lucide="folder" style="width:12px;height:12px;margin-right:3px;"></i>{{ article.category_name }}</span>
+            {% endif %}
+            <time><i data-lucide="calendar" style="width:12px;height:12px;margin-right:3px;"></i>{{ article.created_at[:10] }}</time>
+        </div>
+        <h1 class="article-title">{{ article.title }}</h1>
+        {% if article.tags %}
+        <div class="article-tags">
+            {% for tag in article.tags.split(',') %}
+            <span class="tag">{{ tag.strip() }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ── Reading info at top ── -->
+        <div class="article-reading-info">
+            <span><i data-lucide="align-left" style="width:11px;height:11px"></i> 约 {{ word_count }} 字</span>
+            <span><i data-lucide="clock" style="width:11px;height:11px"></i> 约 {{ reading_time }} 分钟</span>
+            {% if article.featured %}<span class="featured-badge"><i data-lucide="star" style="width:11px;height:11px"></i> 精选</span>{% endif %}
+        </div>
+    </header>
+
+    <!-- ── Inline TOC: auto-generated from h2/h3 ── -->
+    <div id="article-toc" class="article-toc" style="display:none">
+        <div class="toc-head" onclick="var b=document.getElementById('toc-body');var i=this.querySelector('.lucide');b.classList.toggle('toc-collapsed');i&&(i.style.transform=b.classList.contains('toc-collapsed')?'rotate(-90deg)':'rotate(0)')">
+            <span class="toc-label">目录</span>
+            <i data-lucide="chevron-down" style="width:14px;height:14px;transition:transform .2s"></i>
+        </div>
+        <div id="toc-body" class="toc-body">
+            <ul id="toc-list"></ul>
+        </div>
+    </div>
+
+    <div class="article-body">
+        {{ article.content_html|safe }}
+    </div>
+
+    <!-- ── Prev / Next Navigation ── -->
+    {% if prev_article or next_article %}
+    <nav class="article-prevnext">
+        {% if prev_article %}
+        <a href="{{ url_for('article_page', article_id=prev_article.id) }}" class="pn-link pn-prev">
+            <span class="pn-direction"><i data-lucide="chevron-left" style="width:12px;height:12px"></i> 上一篇</span>
+            <span class="pn-title">{{ prev_article.title }}</span>
+        </a>
+        {% endif %}
+        {% if next_article %}
+        <a href="{{ url_for('article_page', article_id=next_article.id) }}" class="pn-link pn-next">
+            <span class="pn-direction">下一篇 <i data-lucide="chevron-right" style="width:12px;height:12px"></i></span>
+            <span class="pn-title">{{ next_article.title }}</span>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    <div class="article-actions">
+        <a href="{{ url_for('editor', article_id=article.id) }}" class="btn">
+            <i data-lucide="pen-square"></i> 编辑
+        </a>
+        <form action="{{ url_for('delete', article_id=article.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除？')">
+            <button type="submit" class="btn btn-danger">
+                <i data-lucide="trash-2"></i> 删除
+            </button>
+        </form>
+    </div>
+
+    <!-- ── Related Articles (card style) ── -->
+    {% if related %}
+    <section class="related-section">
+        <h2 class="related-title"><i data-lucide="book-open" style="width:16px;height:16px"></i> 相关文章</h2>
+        <div class="related-grid">
+            {% for r in related %}
+            <article class="related-card">
+                {% if r.cover_image %}
+                <a href="{{ url_for('article_page', article_id=r.id) }}" class="related-cover">
+                    <img src="{{ r.cover_image }}" alt="" loading="lazy">
+                </a>
+                {% endif %}
+                <div class="related-body">
+                    <div class="related-meta">
+                        {% if r.category_name %}<span class="post-cat">{{ r.category_name }}</span>{% endif %}
+                        <time>{{ r.created_at[:10] }}</time>
+                    </div>
+                    <h3 class="related-card-title">
+                        <a href="{{ url_for('article_page', article_id=r.id) }}">{{ r.title }}</a>
+                    </h3>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</article>
+
+<style>
+/* ── TOC: article inline directory ── */
+.article-toc{max-width:var(--content-narrow);margin:0 auto 24px;background:var(--surface);border-radius:10px;box-shadow:var(--neu-raise);overflow:hidden;border-left:3px solid var(--accent)}
+.toc-head{display:flex;align-items:center;gap:6px;padding:10px 16px;cursor:pointer;user-select:none;color:var(--text-secondary);font-size:13px;transition:background .15s}
+.toc-head:hover{background:var(--accent-light)}
+.toc-label{flex:1;font-weight:600;color:var(--text)}
+.toc-body{padding:0 16px 12px;border-top:1px solid var(--divider)}
+.toc-body.toc-collapsed{display:none}
+#toc-list{list-style:none;padding:0;margin:0}
+#toc-list li{font-size:13px;line-height:1.5}
+#toc-list a{display:block;padding:4px 8px;border-radius:4px;color:var(--text-secondary);text-decoration:none;transition:all .15s;border-left:2px solid transparent}
+#toc-list a:hover{color:var(--accent);background:var(--accent-light)}
+#toc-list a.toc-active{color:var(--accent);border-left-color:var(--accent);font-weight:600;background:var(--accent-light)}
+#toc-list .toc-h2{padding-left:8px}
+#toc-list .toc-h3{padding-left:24px;font-size:12px}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script>
+(function(){
+    var body=document.querySelector('.article-body');
+    var toc=document.getElementById('article-toc');
+    var list=document.getElementById('toc-list');
+    if(!body||!toc||!list) return;
+
+    // Collect headings
+    var headings=body.querySelectorAll('h2,h3');
+    if(headings.length<2){ toc.style.display='none'; return; }
+
+    // Generate TOC items + add id anchors
+    var items=[];
+    headings.forEach(function(h,i){
+        var id='toc-'+i;
+        h.id=id;
+        items.push({el:h,id:id,tag:h.tagName,text:h.textContent.trim()});
+    });
+
+    // Render TOC list
+    var html='';
+    items.forEach(function(item){
+        var cls=(item.tag==='H3')?'toc-h3':'toc-h2';
+        html+='<li><a href="#'+item.id+'" class="'+cls+'" data-toc-id="'+item.id+'">'+item.text+'</a></li>';
+    });
+    list.innerHTML=html;
+
+    // Show TOC
+    toc.style.display='block';
+
+    // IntersectionObserver: highlight active section
+    var tocLinks={};
+    list.querySelectorAll('a').forEach(function(a){ tocLinks[a.getAttribute('data-toc-id')]=a; });
+
+    var obs=new IntersectionObserver(function(entries){
+        var activeId=null;
+        entries.forEach(function(e){
+            if(e.isIntersecting) activeId=e.target.id;
+        });
+        // Clear all
+        for(var k in tocLinks) tocLinks[k].classList.remove('toc-active');
+        // Highlight the last visible one
+        // Find the last visible heading (the one the user is currently reading)
+        // Iterate in reverse to find the topmost visible heading
+        for(var i=headings.length-1;i>=0;i--){
+            var h=headings[i];
+            var rect=h.getBoundingClientRect();
+            if(rect.top<window.innerHeight*0.4){
+                var link=tocLinks[h.id];
+                if(link){ link.classList.add('toc-active'); }
+                break;
+            }
+        }
+    },{threshold:0,rootMargin:'-60px 0px -40% 0px'});
+
+    headings.forEach(function(h){ obs.observe(h); });
+
+    // Smooth scroll on click
+    list.addEventListener('click',function(e){
+        var a=e.target.closest('a');
+        if(!a) return;
+        e.preventDefault();
+        var id=a.getAttribute('href').slice(1);
+        var el=document.getElementById(id);
+        if(el){
+            el.scrollIntoView({behavior:'smooth',block:'start'});
+            // Highlight briefly
+            el.style.transition='background 0.5s';
+            el.style.background='rgba(168,112,63,0.1)';
+            setTimeout(function(){ el.style.background=''; },1000);
+        }
+    });
+
+    // Re-draw Lucide
+    if(typeof lucide!=='undefined') lucide.createIcons();
+})();
+</script>
+{% endblock %}
