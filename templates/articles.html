@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}{% if category %}{{ category.name }}{% else %}全部文章{% endif %} - {{ site_name }}{% endblock %}
+{% block content %}
+
+<nav class="breadcrumb" aria-label="面包屑导航">
+    <a href="/"><i data-lucide="home" style="width:12px;height:12px"></i></a>
+    <span class="bc-sep">/</span>
+    {% if category %}
+    <a href="{{ url_for('writing') }}">写作</a>
+    {% for a in ancestors %}
+    <span class="bc-sep">/</span>
+    <a href="{{ url_for('writing_category', cat_id=a.id) }}">{{ a.name }}</a>
+    {% endfor %}
+    <span class="bc-sep">/</span>
+    <span class="bc-current">{{ category.name }}</span>
+    {% else %}
+    <a href="{{ url_for('writing') }}">写作</a>
+    <span class="bc-sep">/</span>
+    <span class="bc-current">全部文章</span>
+    {% endif %}
+</nav>
+
+<section class="page-header">
+    <h1 class="page-title">
+        {% if category %}
+        <i data-lucide="folder"></i> {{ category.name }}
+        {% else %}
+        <i data-lucide="file-text"></i> 全部文章
+        {% endif %}
+    </h1>
+    {% if category %}
+    <div class="page-header-actions">
+        <a href="/editor" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> 新文章</a>
+        <button type="button" class="btn btn-sm" id="add-subcat-btn" style="margin-left:6px">
+            <i data-lucide="folder-plus"></i> 子卡片
+        </button>
+    </div>
+    {% endif %}
+    {% if articles %}
+    <p class="page-desc">共 {{ articles|length }} 篇</p>
+    {% endif %}
+</section>
+
+{% if keyword %}
+<div style="margin-bottom:20px;color:var(--text-secondary);font-size:14px;">
+    搜索「{{ keyword }}」共 {{ articles|length }} 条结果
+</div>
+{% endif %}
+
+<!-- 子卡片区域 -->
+{% if subcategories %}
+<div class="subcat-section">
+    <h3 class="section-label"><i data-lucide="folder-tree"></i> 子卡片</h3>
+    <div class="subcat-grid" id="subcat-grid">
+        {% for sub in subcategories %}
+        <a href="{{ url_for('writing_category', cat_id=sub.id) }}"
+           class="cat-card cat-card--sub drop-zone"
+           data-cat-id="{{ sub.id }}">
+            <div class="cat-card-icon">
+                <i data-lucide="folder"></i>
+            </div>
+            <h4 class="cat-card-name">{{ sub.name }}</h4>
+            {% if sub.description %}
+            <p class="cat-card-desc">{{ sub.description }}</p>
+            {% endif %}
+            <div class="cat-card-meta">
+                <span class="cat-card-count">{{ sub.article_count }} 篇</span>
+                {% if sub.children_count > 0 %}
+                <span class="cat-card-children">{{ sub.children_count }} 子卡片</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+        <!-- 在此卡片内新建子卡片 -->
+        <button type="button" class="cat-card cat-card--add" id="add-subcat-inline">
+            <i data-lucide="plus" style="width:24px;height:24px;color:var(--accent)"></i>
+            <span style="margin-top:8px;font-size:13px;color:var(--text-secondary)">新建子卡片</span>
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- 同级分类（快速移动目标区） -->
+{% if siblings %}
+<div class="sibling-section">
+    <h3 class="section-label"><i data-lucide="arrow-left-right"></i> 同级分类</h3>
+    <div class="sibling-scroll" id="sibling-scroll">
+        {% for sib in siblings %}
+        <a href="{{ url_for('writing_category', cat_id=sib.id) }}"
+           class="cat-card cat-card--sibling drop-zone"
+           data-cat-id="{{ sib.id }}">
+            <span class="cat-card-name">{{ sib.name }}</span>
+            <span class="cat-card-count">{{ sib.article_count }} 篇</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if articles %}
+<div class="post-grid" id="article-list">
+    {% for article in articles %}
+    <article class="post-entry reveal" draggable="true"
+             data-article-id="{{ article.id }}"
+             data-category-id="{{ article.category_id or '' }}">
+        {% if article.cover_image %}
+        <a href="{{ url_for('article_page', article_id=article.id) }}" class="post-cover">
+            <img src="{{ article.cover_image }}" alt="{{ article.title }}" loading="lazy">
+        </a>
+        {% endif %}
+        <div class="post-content">
+        <div class="post-meta">
+            {% if article.category_name %}
+            <span class="post-cat">{{ article.category_name }}</span>
+            {% endif %}
+            <time>{{ article.created_at[:10] }}</time>
+            <span class="post-drag-hint" title="拖拽到分类卡片移动"><i data-lucide="grip-vertical" style="width:13px;height:13px"></i></span>
+        </div>
+        <h2 class="post-title">
+            <a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title }}</a>
+        </h2>
+        <p class="post-summary">{{ article.summary or article.content[:180] + '…' }}</p>
+        {% if article.tags %}
+        <div class="post-tags">
+            {% for tag in article.tags.split(',')[:4] %}
+            <span class="post-tag">{{ tag.strip() }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% elif not subcategories %}
+<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
+    <i data-lucide="file-text" style="width:32px;height:32px;margin-bottom:12px;"></i>
+    <p>暂无文章</p>
+    <a href="/editor" class="btn btn-primary" style="margin-top:16px;display:inline-block;">
+        <i data-lucide="pen-square"></i> 写第一篇
+    </a>
+</div>
+{% endif %}
+
+<!-- 新建子卡片弹窗（复用 writing.html 的逻辑） -->
+<div class="modal-overlay" id="subcat-modal" style="display:none">
+    <div class="modal-box">
+        <h3 class="modal-title">在「{{ category.name if category else '' }}」下新建子卡片</h3>
+        <div class="modal-body">
+            <label>卡片名称</label>
+            <input type="text" id="subcat-name" placeholder="子卡片名称" autofocus>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="subcat-cancel" class="btn">取消</button>
+            <button type="button" id="subcat-confirm" class="btn btn-primary">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- 移动到弹窗（拖拽操作的备选方案） -->
+<div class="modal-overlay" id="move-modal" style="display:none">
+    <div class="modal-box modal-box--sm">
+        <h3 class="modal-title">移动到分类</h3>
+        <div class="modal-body">
+            <p id="move-modal-article-title" style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;"></p>
+            <select id="move-modal-select" style="width:100%">
+                <option value="">— 无分类 —</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button type="button" id="move-cancel" class="btn">取消</button>
+            <button type="button" id="move-confirm" class="btn btn-primary">移动</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+lucide.createIcons();
+
+// ── 新建子卡片 ──
+(function(){
+    var modal = document.getElementById('subcat-modal');
+    var nameInput = document.getElementById('subcat-name');
+    var confirmBtn = document.getElementById('subcat-confirm');
+    var cancelBtn = document.getElementById('subcat-cancel');
+    var addBtns = document.querySelectorAll('#add-subcat-btn, #add-subcat-inline');
+    var parentId = {{ category.id if category else 'null' }};
+
+    if(!modal) return;
+
+    function openSubcatModal(){
+        modal.style.display = 'flex';
+        if(nameInput) nameInput.value = '';
+        if(nameInput) nameInput.focus();
+    }
+    function closeSubcatModal(){ modal.style.display = 'none'; }
+
+    addBtns.forEach(function(b){ if(b) b.onclick = openSubcatModal; });
+    if(cancelBtn) cancelBtn.onclick = closeSubcatModal;
+    if(nameInput) nameInput.onkeydown = function(e){
+        if(e.key === 'Enter' && confirmBtn) confirmBtn.click();
+        if(e.key === 'Escape' && cancelBtn) cancelBtn.click();
+    };
+    modal.onclick = function(e){ if(e.target === modal) closeSubcatModal(); };
+
+    if(confirmBtn) confirmBtn.onclick = function(){
+        var name = nameInput.value.trim();
+        if(!name) return alert('请输入卡片名称');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '创建中…';
+        fetch('/api/category/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name, parent_id: parentId})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if(d.error) return alert(d.error);
+            window.location.reload();
+        })
+        .catch(function(){
+            alert('创建失败');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '创建';
+        });
+    };
+})();
+
+// ── 拖拽移动文章 ──
+(function(){
+    var dragArticleId = null;
+
+    // Make articles draggable
+    var articles = document.querySelectorAll('.post-entry[draggable="true"]');
+    articles.forEach(function(art){
+        art.addEventListener('dragstart', function(e){
+            dragArticleId = this.dataset.articleId;
+            e.dataTransfer.effectAllowed = 'move';
+            this.classList.add('dragging');
+        });
+        art.addEventListener('dragend', function(e){
+            this.classList.remove('dragging');
+            document.querySelectorAll('.drop-zone').forEach(function(dz){
+                dz.classList.remove('drag-over');
+            });
+        });
+    });
+
+    // Drop zones: subcategory cards + sibling cards
+    var dropZones = document.querySelectorAll('.drop-zone');
+    dropZones.forEach(function(dz){
+        dz.addEventListener('dragover', function(e){
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+        });
+        dz.addEventListener('dragleave', function(e){
+            this.classList.remove('drag-over');
+        });
+        dz.addEventListener('drop', function(e){
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if(!dragArticleId) return;
+            var targetCatId = this.dataset.catId;
+            if(!targetCatId) return;
+            moveArticle(dragArticleId, parseInt(targetCatId));
+        });
+    });
+
+    // Drop zone: sibling scroll container itself
+    var siblingScroll = document.getElementById('sibling-scroll');
+    if(siblingScroll){
+        siblingScroll.addEventListener('dragover', function(e){ e.preventDefault(); });
+    }
+
+    function moveArticle(articleId, catId){
+        fetch('/api/article/' + articleId + '/move', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({category_id: catId})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if(d.ok){
+                // Remove the article card with animation
+                var el = document.querySelector('.post-entry[data-article-id="' + articleId + '"]');
+                if(el){
+                    el.style.transition = 'all 0.3s';
+                    el.style.opacity = '0';
+                    el.style.transform = 'scale(0.9)';
+                    setTimeout(function(){ el.remove(); }, 300);
+                }
+            }
+        })
+        .catch(function(e){ console.error('Move failed', e); });
+    }
+
+    // ── 备选：点击拖拽手柄打开移动弹窗 ──
+    var moveModal = document.getElementById('move-modal');
+    var moveSelect = document.getElementById('move-modal-select');
+    var moveConfirm = document.getElementById('move-confirm');
+    var moveCancel = document.getElementById('move-cancel');
+    var moveTitle = document.getElementById('move-modal-article-title');
+    var currentMoveArticleId = null;
+
+    // Click on drag hint opens move modal
+    document.querySelectorAll('.post-drag-hint').forEach(function(hint){
+        hint.addEventListener('click', function(){
+            var article = this.closest('.post-entry');
+            if(!article) return;
+            currentMoveArticleId = article.dataset.articleId;
+            var title = article.querySelector('.post-title')?.textContent?.trim() || '文章';
+            if(moveTitle) moveTitle.textContent = title;
+
+            // Fetch all categories for the select
+            fetch('/api/categories/tree')
+            .then(function(r){ return r.json(); })
+            .then(function(cats){
+                if(!moveSelect) return;
+                moveSelect.innerHTML = '<option value="">— 无分类 —</option>';
+                cats.forEach(function(c){
+                    var opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.display;
+                    moveSelect.appendChild(opt);
+                });
+                if(moveModal) moveModal.style.display = 'flex';
+            })
+            .catch(function(){ alert('无法加载分类列表'); });
+        });
+    });
+
+    if(moveCancel) moveCancel.onclick = function(){ if(moveModal) moveModal.style.display = 'none'; };
+    if(moveModal) moveModal.onclick = function(e){ if(e.target === moveModal) moveModal.style.display = 'none'; };
+
+    if(moveConfirm) moveConfirm.onclick = function(){
+        if(!currentMoveArticleId) return;
+        var catId = moveSelect.value ? parseInt(moveSelect.value) : null;
+        moveArticle(currentMoveArticleId, catId);
+        moveModal.style.display = 'none';
+    };
+
+})();
+</script>
+{% endblock %}
