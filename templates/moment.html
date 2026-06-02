@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}动态 - {{ site_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="面包屑导航">
+    <a href="/"><i data-lucide="home" style="width:12px;height:12px"></i></a>
+    <span class="bc-sep">/</span>
+    <span class="bc-current">动态</span>
+</nav>
+<h1 class="page-title"><i data-lucide="message-square-text"></i> 动态</h1>
+
+<!-- Quick post form -->
+<div class="moment-post-box">
+    <form action="{{ url_for('moment_add') }}" method="POST" enctype="multipart/form-data">
+        <textarea name="content" rows="3" placeholder="此刻的想法…" class="moment-text" required></textarea>
+
+        <div class="moment-mood-row">
+            {% for icon, label in mood_choices %}
+            <label class="mood-opt{% if loop.first %} active{% endif %}">
+                <input type="radio" name="mood" value="{{ icon }}"{% if loop.first %} checked{% endif %} hidden>
+                <i data-lucide="{{ icon }}" style="width:15px;height:15px"></i>
+                <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="moment-post-actions">
+            <label class="btn btn-sm photo-btn" for="moment-image-input">
+                <i data-lucide="image" style="width:14px;height:14px"></i> 配图
+            </label>
+            <input type="file" id="moment-image-input" name="image" accept="image/*" hidden>
+            <span id="moment-file-name" class="moment-file-name"></span>
+            <button type="submit" class="btn btn-primary"><i data-lucide="send" style="width:14px;height:14px"></i> 发布</button>
+        </div>
+    </form>
+</div>
+
+<!-- Timeline feed -->
+<div class="moment-feed">
+    {% set has_anything = moments|length > 0 or inspirations|length > 0 %}
+
+    {% if has_anything %}
+        {# Group moments by date #}
+        {% set ns = namespace(last_date='') %}
+        {% for m in moments %}
+        {% set date_key = m.created_at[:10] %}
+        {% if date_key != ns.last_date %}
+        {% set ns.last_date = date_key %}
+        <div class="timeline-date">
+            <span class="tl-dot"></span>
+            <time class="tl-label">{{ date_key }}</time>
+        </div>
+        {% endif %}
+
+        <div class="mcard reveal">
+            <div class="mcard-head">
+                {% if m.mood %}
+                <span class="mood-badge mood-{{ m.mood }}">
+                    <i data-lucide="{{ m.mood }}" style="width:13px;height:13px"></i>
+                </span>
+                {% endif %}
+                <time class="mcard-time">{{ m.created_at[11:16] }}</time>
+            </div>
+            <div class="mcard-body">{{ m.content }}</div>
+            {% if m.image_url %}
+            <div class="mcard-img-wrap">
+                <img src="{{ m.image_url }}" alt="" loading="lazy" class="mcard-img">
+            </div>
+            {% endif %}
+            <div class="mcard-foot">
+                <a href="{{ url_for('moment_edit', mid=m.id) }}" class="btn-del-icon" title="编辑">
+                    <i data-lucide="pencil" style="width:13px;height:13px"></i>
+                </a>
+                <form action="{{ url_for('moment_delete', mid=m.id) }}" method="POST" onsubmit="return confirm('确认删除？')">
+                    <button type="submit" class="btn-del-icon" title="删除"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty"><p>还没有动态。</p></div>
+    {% endif %}
+</div>
+
+<!-- Image preview + mood selector scripts -->
+<script>
+(function(){
+    // Image file name display
+    var input = document.getElementById('moment-image-input');
+    var nameSpan = document.getElementById('moment-file-name');
+    if(input && nameSpan) {
+        input.addEventListener('change', function(){
+            nameSpan.textContent = this.files[0] ? this.files[0].name : '';
+        });
+    }
+
+    // Mood selector: highlight active
+    var opts = document.querySelectorAll('.mood-opt');
+    opts.forEach(function(el){
+        el.addEventListener('click', function(){
+            opts.forEach(function(o){ o.classList.remove('active'); });
+            this.classList.add('active');
+        });
+    });
+
+    lucide.createIcons();
+})();
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.moment-post-box{max-width:640px;margin:0 auto 24px;background:var(--surface);border-radius:12px;padding:16px 20px;box-shadow:var(--neu-raise)}
+.moment-text{width:100%;padding:10px 0;border:none;resize:vertical;font-family:var(--font-sans);font-size:14px;background:transparent;color:var(--text);outline:none;line-height:1.6}
+
+/* Mood row */
+.moment-mood-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 6px}
+.mood-opt{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-muted);background:var(--bg);border:1px solid transparent;transition:all .15s}
+.mood-opt:hover{color:var(--accent);background:var(--accent-light)}
+.mood-opt.active{color:var(--accent);background:var(--accent-light);border-color:var(--accent)}
+
+.moment-post-actions{display:flex;align-items:center;gap:8px;margin-top:8px;justify-content:flex-end}
+.photo-btn{cursor:pointer}
+.moment-file-name{font-size:11px;color:var(--text-muted);flex:1}
+
+/* Timeline */
+.moment-feed{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:0}
+.timeline-date{display:flex;align-items:center;gap:10px;padding:20px 0 8px 0;position:relative}
+.timeline-date:first-child{padding-top:0}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;position:relative;z-index:1}
+.tl-label{font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:.03em}
+
+/* Card */
+.mcard{background:var(--surface);border-radius:12px;padding:14px 18px;box-shadow:var(--neu-raise);display:block;text-decoration:none;color:inherit;transition:box-shadow .2s,transform .2s;margin-bottom:8px;margin-left:28px}
+.mcard:hover{box-shadow:var(--neu-hover);transform:translateY(-1px)}
+.mcard-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mood-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:12px}
+.mood-brain{background:rgba(92,97,77,0.12);color:var(--green)}
+.mood-lightbulb{background:rgba(168,112,63,0.12);color:var(--accent)}
+.mood-coffee{background:rgba(168,112,63,0.10);color:#9A7B5A}
+.mood-book-open{background:rgba(92,97,77,0.12);color:var(--green)}
+.mood-moon{background:#E8E0F0;color:#7A6A9A}
+.mood-heart{background:#F0D8D8;color:#B85C6A}
+.mood-cloud{background:#DDE0E8;color:#7A8A9A}
+.mood-graduation-cap{background:rgba(92,97,77,0.10);color:var(--green)}
+.mood-map-pin{background:rgba(168,112,63,0.10);color:var(--accent)}
+.mood-film{background:#D8E0E8;color:#5A7A9A}
+.mood-quote{background:var(--accent-light);color:var(--accent)}
+.mood-pen-line{background:var(--green-light);color:var(--green)}
+.mcard-time{font-size:12px;color:var(--text-muted)}
+.mcard-body{font-size:14px;line-height:1.7;color:var(--text-secondary);margin-bottom:6px;white-space:pre-wrap}
+.mcard-img-wrap{margin:8px 0 0;border-radius:8px;overflow:hidden}
+.mcard-img{width:100%;max-height:400px;object-fit:cover;border-radius:8px;display:block}
+.mcard-foot{display:flex;justify-content:flex-end;gap:4px;margin-top:4px}
+
+/* Delete/edit icon */
+.btn-del-icon{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:none;border-radius:4px;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .2s;opacity:0}
+.mcard:hover .btn-del-icon{opacity:1}
+.btn-del-icon:hover{color:var(--danger,#B85C4A);background:rgba(184,92,74,0.08)}
+
+@media(max-width:640px){
+    .moment-mood-row{gap:3px}
+    .mood-opt{padding:3px 8px;font-size:11px}
+    .mcard{margin-left:16px;padding:12px 14px}
+}
+</style>
+{% endblock %}
