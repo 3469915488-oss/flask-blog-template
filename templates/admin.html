@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}管理 - {{ site_name }}{% endblock %}
+{% block content %}
+<div class="admin-page">
+    <h1 class="page-title">管理</h1>
+
+    <!-- ═══ 分类管理 ═══ -->
+    <section class="admin-section">
+        <h2>分类</h2>
+        {% if edit_cat %}
+        <form method="POST" action="{{ url_for('admin_edit_category', cat_id=edit_cat.id) }}" class="inline-form">
+            <input type="text" name="name" value="{{ edit_cat.name }}" required>
+            <input type="text" name="description" value="{{ edit_cat.description }}" placeholder="描述">
+            <select name="parent_id" style="max-width:200px">
+                <option value="">— 顶级 —</option>
+                {% for cat in tree_flat %}
+                {% if cat.id != edit_cat.id %}
+                <option value="{{ cat.id }}" {% if edit_cat.parent_id == cat.id %}selected{% endif %}>
+                    {% if cat.depth > 0 %}{{ '　' * cat.depth }}├ {% endif %}{{ cat.name }}
+                </option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('admin') }}" class="btn">取消</a>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('admin_create_category') }}" class="inline-form">
+            <input type="text" name="name" placeholder="新分类名称" required>
+            <input type="text" name="description" placeholder="描述（可选）">
+            <button type="submit" class="btn">添加</button>
+        </form>
+        {% endif %}
+        <table>
+            <thead><tr><th>名称</th><th>描述</th><th>文章数</th><th>子卡片</th><th></th></tr></thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td>
+                        {% set ns = namespace(depth=0) %}
+                        {% for tc in tree_flat %}
+                        {% if tc.id == cat.id %}{% set ns.depth = tc.depth %}{% endif %}
+                        {% endfor %}
+                        <span style="margin-left:{{ ns.depth * 20 }}px">
+                            {% if ns.depth > 0 %}└ {% endif %}{{ cat.name }}
+                        </span>
+                    </td>
+                    <td style="color:#86868B;font-size:13px">{{ cat.description or '-' }}</td>
+                    <td>{{ cat.article_count }}</td>
+                    <td>{{ cat.children_count or 0 }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_edit_category', cat_id=cat.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('admin_delete_category', cat_id=cat.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除分类「{{ cat.name }}」？子分类会提升一级，文章的分类标记会被移除。')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ═══ 文章管理 ═══ -->
+    <section class="admin-section">
+        <h2>文章</h2>
+        <table>
+            <thead><tr><th>标题</th><th>分类</th><th>日期</th><th></th></tr></thead>
+            <tbody>
+                {% for article in articles %}
+                <tr>
+                    <td><a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title[:50] }}</a></td>
+                    <td>{{ article.category_name or '-' }}</td>
+                    <td>{{ article.created_at[:10] }}</td>
+                    <td>
+                        <a href="{{ url_for('editor', article_id=article.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('delete', article_id=article.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除文章「{{ article.title }}」？')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center;color:#86868B">暂无文章</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ═══ 标签管理 ═══ -->
+    <section class="admin-section">
+        <h2>标签</h2>
+        <table>
+            <thead><tr><th>名称</th><th>文章数</th><th></th></tr></thead>
+            <tbody>
+                {% for tag in tags %}
+                <tr>
+                    <td><span class="tag">{{ tag.name }}</span></td>
+                    <td>{{ tag.article_count }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_edit_tag', tag_id=tag.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('admin_delete_tag', tag_id=tag.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除标签「{{ tag.name }}」？')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" style="text-align:center;color:#86868B">暂无标签</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ═══ 歌单管理 ═══ -->
+    <section class="admin-section">
+        <h2><i data-lucide="film"></i> 歌单与影视</h2>
+        <form method="POST" action="{{ url_for('media_add') }}" enctype="multipart/form-data" class="inline-form">
+            <input type="text" name="type" placeholder="分类（如 音乐、影视、播客）" value="music" style="width:120px">
+            <input type="text" name="title" placeholder="标题" required>
+            <input type="text" name="subtitle" placeholder="副标题 / 艺术家">
+            <input type="text" name="cover_url" placeholder="封面 URL（可选）" style="flex:0.8">
+            <input type="file" name="cover_file" accept="image/*" style="flex:0.8;padding:6px 10px;font-size:12px;border:none;border-radius:6px;background:var(--surface);cursor:pointer">
+            <input type="text" name="link_url" placeholder="链接 URL（可选）">
+            <button type="submit" class="btn">添加</button>
+        </form>
+
+        {% if media_types %}
+        {% for mtype in media_types %}
+        <h3 style="font-size:13px;font-weight:600;margin:12px 0 8px;color:var(--text-secondary)">
+            {{ mtype }}
+        </h3>
+        <table>
+            <thead><tr><th>标题</th><th>副标题</th><th></th></tr></thead>
+            <tbody>
+                {% for item in all_media_items if item.type == mtype %}
+                <tr>
+                    <td>{{ item.title }}</td>
+                    <td style="color:#86868B;font-size:13px">{{ item.subtitle or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('media_edit', mid=item.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('media_delete', mid=item.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除「{{ item.title }}」？')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" style="text-align:center;color:#86868B">暂无</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+        {% else %}
+        <p style="color:var(--text-muted);font-size:13px;margin-top:8px">暂无内容，在上方添加。</p>
+        {% endif %}
+    </section>
+
+    <!-- ═══ 收藏管理 ═══ -->
+    <section class="admin-section">
+        <h2>收藏</h2>
+        <form method="POST" action="{{ url_for('collection_add') }}" class="inline-form">
+            <input type="text" name="type" placeholder="分类（如 文章、工具）" value="article" style="width:120px">
+            <input type="text" name="title" placeholder="标题" required>
+            <input type="text" name="url" placeholder="URL" required>
+            <input type="text" name="note" placeholder="备注（可选）">
+            <button type="submit" class="btn">添加</button>
+        </form>
+
+        {% if collection_types %}
+        {% for ctype in collection_types %}
+        <h3 style="font-size:13px;font-weight:600;margin:12px 0 8px;color:var(--text-secondary)">{{ ctype }}</h3>
+        <table>
+            <thead><tr><th>标题</th><th></th></tr></thead>
+            <tbody>
+                {% for c in all_collection_items if c.type == ctype %}
+                <tr>
+                    <td><a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.title }}</a></td>
+                    <td>
+                        <a href="{{ url_for('collection_edit', cid=c.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('collection_delete', cid=c.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除收藏「{{ c.title }}」？')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2" style="text-align:center;color:#86868B">暂无</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+        {% else %}
+        <p style="color:var(--text-muted);font-size:13px;margin-top:8px">暂无收藏，在上方添加。</p>
+        {% endif %}
+    </section>
+
+    <!-- ═══ 灵感管理 ═══ -->
+    <section class="admin-section">
+        <h2>灵感小记</h2>
+        <form method="POST" action="{{ url_for('inspiration_add') }}" class="inline-form">
+            <input type="text" name="content" placeholder="写下灵光一现…" required style="flex:3">
+            <input type="text" name="tags" placeholder="标签（逗号分隔）">
+            <button type="submit" class="btn">记录</button>
+        </form>
+        <table>
+            <thead><tr><th>内容</th><th>标签</th><th>日期</th><th></th></tr></thead>
+            <tbody>
+                {% for insp in inspirations %}
+                <tr>
+                    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ insp.content[:80] }}{% if insp.content|length > 80 %}…{% endif %}</td>
+                    <td style="color:#86868B;font-size:13px">{{ insp.tags or '-' }}</td>
+                    <td style="color:#86868B;font-size:13px">{{ insp.created_at[:10] }}</td>
+                    <td>
+                        <a href="{{ url_for('inspiration_edit', iid=insp.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('inspiration_delete', iid=insp.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除这条灵感？')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align:center;color:#86868B">暂无灵感</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ═══ 动态管理 ═══ -->
+    <section class="admin-section">
+        <h2>心情动态</h2>
+        <form method="POST" action="{{ url_for('moment_add') }}" class="inline-form">
+            <input type="text" name="content" placeholder="此刻的心情…" required style="flex:3">
+            <button type="submit" class="btn">发布</button>
+        </form>
+        <table>
+            <thead><tr><th>内容</th><th>日期</th><th></th></tr></thead>
+            <tbody>
+                {% for m in all_moments %}
+                <tr>
+                    <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.content[:100] }}{% if m.content|length > 100 %}…{% endif %}</td>
+                    <td style="color:#86868B;font-size:13px">{{ m.created_at[:10] }}</td>
+                    <td>
+                        <a href="{{ url_for('moment_edit', mid=m.id) }}" class="btn btn-sm">编辑</a>
+                        <form action="{{ url_for('moment_delete', mid=m.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除这条动态？')">
+                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" style="text-align:center;color:#86868B">暂无动态</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}
