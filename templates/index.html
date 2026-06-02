@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block title %}{{ site_name }}{% endblock %}
+{% block content %}
+
+<!-- ── Hero ── -->
+<section class="hero">
+    <h1>我的博客</h1>
+    <p class="hero-desc">记录思考，沉淀文字。</p>
+</section>
+
+<!-- ── Dashboard: Stats + Calendar ── -->
+<section class="dashboard-card reveal">
+    <div class="dash-stats">
+        <div class="dash-stat">
+            <span class="dash-num">{{ stats.total_articles if stats else 0 }}</span>
+            <span class="dash-label">文章</span>
+        </div>
+        <div class="dash-stat">
+            <span class="dash-num">{{ '{:.0f}'.format(stats.total_words / 10000) if stats else 0 }}</span>
+            <span class="dash-label">万字</span>
+        </div>
+        <div class="dash-stat">
+            <span class="dash-num">{{ stats.this_month if stats else 0 }}</span>
+            <span class="dash-label">本月</span>
+        </div>
+        {% if stats and stats.sorted_months %}
+        <div class="dash-heatmap">
+            {% for m in stats.sorted_months[:6] %}
+            <div class="dash-ht" title="{{ m }} {{ stats.monthly_counts[m] }}篇">
+                <span class="dash-bar" style="height:{{ (stats.monthly_counts[m] / (stats.monthly_counts.values()|max) * 28)|int }}px"></span>
+                <span class="dash-htl">{{ m[5:] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="dash-cal">
+        <div id="home-calendar"><span class="dash-muted">加载中…</span></div>
+    </div>
+</section>
+
+<!-- ── Featured Articles ── -->
+{% if featured %}
+<section class="home-section">
+    <h2 class="home-section-title"><i data-lucide="star"></i> 精选</h2>
+    <div class="post-grid">
+        {% for article in featured %}
+        <article class="post-entry featured-entry reveal">
+            {% if article.cover_image %}
+            <a href="{{ url_for('article_page', article_id=article.id) }}" class="post-cover">
+                <img src="{{ article.cover_image }}" alt="" loading="lazy">
+            </a>
+            {% endif %}
+            <div class="post-content">
+            <div class="post-meta">
+                {% if article.category_name %}
+                <span class="post-cat">{{ article.category_name }}</span>
+                {% endif %}
+                <time>{{ article.created_at[:10] }}</time>
+            </div>
+            <h2 class="post-title">
+                <a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title }}</a>
+            </h2>
+            <p class="post-summary">{{ article.summary or article.content[:180] + '…' }}</p>
+            {% if article.tags %}
+            <div class="post-tags">
+                {% for tag in article.tags.split(',')[:4] %}
+                <span class="post-tag">{{ tag.strip() }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ── Recent Articles ── -->
+{% if keyword %}
+<div style="margin-bottom:20px;color:var(--text-secondary);font-size:14px;">
+    搜索「{{ keyword }}」共 {{ articles|length }} 条结果
+</div>
+{% endif %}
+
+{% if articles %}
+<section class="home-section">
+    <h2 class="home-section-title"><i data-lucide="file-text"></i> 最近</h2>
+    <div class="post-grid">
+        {% for article in articles %}
+        <article class="post-entry reveal">
+            {% if article.cover_image %}
+            <a href="{{ url_for('article_page', article_id=article.id) }}" class="post-cover">
+                <img src="{{ article.cover_image }}" alt="" loading="lazy">
+            </a>
+            {% endif %}
+            <div class="post-content">
+            <div class="post-meta">
+                {% if article.category_name %}
+                <span class="post-cat">{{ article.category_name }}</span>
+                {% endif %}
+                <time>{{ article.created_at[:10] }}</time>
+            </div>
+            <h2 class="post-title">
+                <a href="{{ url_for('article_page', article_id=article.id) }}">{{ article.title }}</a>
+            </h2>
+            <p class="post-summary">{{ article.summary or article.content[:180] + '…' }}</p>
+            {% if article.tags %}
+            <div class="post-tags">
+                {% for tag in article.tags.split(',')[:4] %}
+                <span class="post-tag">{{ tag.strip() }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% if show_more %}
+    <div class="more-link-wrap">
+        <a href="/articles" class="more-link">更多文章 →</a>
+    </div>
+    {% endif %}
+</section>
+{% else %}
+{% if not keyword %}
+<div class="hero-actions" style="margin-top:-16px;margin-bottom:40px;text-align:center;">
+    <a href="/editor" class="btn btn-primary">
+        <i data-lucide="pen-square"></i> 写下第一篇
+    </a>
+    <a href="/about" class="btn">
+        <i data-lucide="user"></i> 关于我
+    </a>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- ── Music & Movie ── -->
+{% if recent_media_music or recent_media_anime %}
+<div class="media-strip">
+    {% if recent_media_music %}
+    <div class="media-block">
+        <h3 class="media-block-title"><i data-lucide="music"></i> 在听</h3>
+        <div class="media-items-grid">
+            {% for m in recent_media_music[:6] %}
+            <div class="media-chip-card" onclick="{% if m.link_url %}window.open('{{ m.link_url }}','_blank'){% endif %}" style="cursor:pointer">
+                {% if m.cover_url %}
+                <div class="chip-cover">
+                    <img src="{{ m.cover_url }}" alt="{{ m.title }}" loading="lazy" onerror="this.parentElement.classList.add('chip-cover-fail')">
+                </div>
+                {% else %}
+                <div class="chip-cover chip-cover-empty">
+                    <i data-lucide="music" style="width:20px;height:20px;opacity:.25"></i>
+                </div>
+                {% endif %}
+                <div class="chip-info">
+                    <span class="chip-title">{{ m.title }}</span>
+                    {% if m.subtitle %}<span class="chip-artist">{{ m.subtitle }}</span>{% endif %}
+                </div>
+                <a href="{{ url_for('media_edit', mid=m.id) }}" class="chip-edit-btn" title="编辑"><i data-lucide="pencil" style="width:12px;height:12px"></i></a>
+            </div>
+            {% endfor %}
+            <a href="/media" class="media-chip-card chip-more">
+                <div class="chip-cover chip-cover-empty">
+                    <i data-lucide="chevron-right" style="width:24px;height:24px;opacity:.4"></i>
+                </div>
+                <div class="chip-info">
+                    <span class="chip-title">更多</span>
+                </div>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    {% if recent_media_anime %}
+    <div class="media-block">
+        <h3 class="media-block-title"><i data-lucide="tv"></i> 在看</h3>
+        <div class="media-items-grid">
+            {% for a in recent_media_anime[:6] %}
+            <div class="media-chip-card" onclick="{% if a.link_url %}window.open('{{ a.link_url }}','_blank'){% endif %}" style="cursor:pointer">
+                {% if a.cover_url %}
+                <div class="chip-cover">
+                    <img src="{{ a.cover_url }}" alt="{{ a.title }}" loading="lazy" onerror="this.parentElement.classList.add('chip-cover-fail')">
+                </div>
+                {% else %}
+                <div class="chip-cover chip-cover-empty">
+                    <i data-lucide="film" style="width:20px;height:20px;opacity:.25"></i>
+                </div>
+                {% endif %}
+                <div class="chip-info">
+                    <span class="chip-title">{{ a.title }}</span>
+                    {% if a.subtitle %}<span class="chip-artist">{{ a.subtitle }}</span>{% endif %}
+                </div>
+                <a href="{{ url_for('media_edit', mid=a.id) }}" class="chip-edit-btn" title="编辑"><i data-lucide="pencil" style="width:12px;height:12px"></i></a>
+            </div>
+            {% endfor %}
+            <a href="/media" class="media-chip-card chip-more">
+                <div class="chip-cover chip-cover-empty">
+                    <i data-lucide="chevron-right" style="width:24px;height:24px;opacity:.4"></i>
+                </div>
+                <div class="chip-info">
+                    <span class="chip-title">更多</span>
+                </div>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ── Module Previews (2×2 grid) ── -->
+{% if recent_inspirations or recent_footprints or recent_collections or recent_moments %}
+<div class="module-grid">
+    {% if recent_inspirations and recent_inspirations|length > 0 %}
+    <div class="module-card reveal">
+        <div class="module-header">
+            <i data-lucide="lightbulb"></i>
+            <h3>写作</h3>
+            <a href="/moment">更多 →</a>
+        </div>
+        {% for item in recent_inspirations[:3] %}
+        <a href="{{ url_for('inspiration_detail', iid=item.id) }}" class="inspiration-item">{{ item.content[:120] }}{% if item.content|length > 120 %}…{% endif %}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if recent_footprints and recent_footprints|length > 0 %}
+    <div class="module-card reveal">
+        <div class="module-header">
+            <i data-lucide="map-pin"></i>
+            <h3>足迹</h3>
+            <a href="/footprint">更多 →</a>
+        </div>
+        <div class="footprint-preview">
+            {% for fp in recent_footprints[:3] %}
+                <a href="{{ url_for('footprint_detail', fid=fp.id) }}">
+                {% if fp.image_url %}
+                <img src="{{ fp.image_url }}" alt="{{ fp.location or '足迹照片' }}" loading="lazy">
+                {% else %}
+                <span class="footprint-empty"><i data-lucide="image"></i></span>
+                {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if recent_collections and recent_collections|length > 0 %}
+    <div class="module-card reveal">
+        <div class="module-header">
+            <i data-lucide="bookmark"></i>
+            <h3>收藏</h3>
+            <a href="/collection">更多 →</a>
+        </div>
+        {% for item in recent_collections[:3] %}
+        <div class="collection-item">
+            <i data-lucide="link"></i>
+            <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if recent_moments and recent_moments|length > 0 %}
+    <div class="module-card reveal">
+        <div class="module-header">
+            <i data-lucide="message-square-text"></i>
+            <h3>动态</h3>
+            <a href="/moment">更多 →</a>
+        </div>
+        {% for item in recent_moments[:3] %}
+        <a href="{{ url_for('moment_detail', mid=item.id) }}" class="moment-item">
+            {{ item.content[:120] }}{% if item.content|length > 120 %}…{% endif %}
+            {% if item.created_at %}
+            <span class="moment-time">{{ item.created_at[:10] }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+/* Media chip cards for homepage */
+.media-items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.media-chip-card{background:var(--surface);border-radius:10px;box-shadow:var(--neu-raise);overflow:hidden;transition:all .2s;text-decoration:none;color:inherit;position:relative}
+.media-chip-card:hover{box-shadow:var(--neu-raise-hover);transform:translateY(-2px)}
+.chip-cover{width:100%;aspect-ratio:1;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;position:relative}
+.chip-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.chip-cover-fail,.chip-cover-fail img{display:none}
+.chip-cover-empty{display:flex;align-items:center;justify-content:center}
+.chip-info{padding:6px 8px 8px}
+.chip-title{display:block;font-size:12px;font-weight:600;color:var(--text);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-artist{display:block;font-size:10px;color:var(--text-muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Edit button: hidden by default, show on card hover */
+.chip-edit-btn{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s,background .15s;z-index:2;text-decoration:none}
+.media-chip-card:hover .chip-edit-btn{opacity:1}
+.chip-edit-btn:hover{background:rgba(0,0,0,.7)}
+.chip-more{display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.5;transition:opacity .2s;cursor:pointer}
+.chip-more:hover{opacity:1}
+
+/* Dashboard card */
+.dashboard-card{background:var(--surface);border-radius:16px;box-shadow:var(--neu-raise);padding:20px 24px;margin-bottom:24px}
+.dash-stats{display:flex;align-items:center;gap:24px;margin-bottom:16px}
+.dash-stat{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:56px}
+.dash-num{font-size:22px;font-weight:700;color:var(--text);line-height:1}
+.dash-label{font-size:11px;color:var(--text-muted)}
+.dash-heatmap{display:flex;align-items:flex-end;gap:6px;margin-left:auto;padding-left:20px;border-left:1px solid var(--border)}
+.dash-ht{display:flex;flex-direction:column;align-items:center;gap:2px}
+.dash-bar{width:8px;min-height:3px;border-radius:4px;background:var(--accent);opacity:.6;transition:opacity .2s}
+.dash-ht:hover .dash-bar{opacity:1}
+.dash-htl{font-size:8px;color:var(--text-muted);writing-mode:vertical-lr}
+.dash-cal{border-top:1px solid var(--border);padding-top:14px}
+#home-calendar{max-width:280px;margin:0 auto}
+#home-calendar .cal-head{font-size:15px;padding:0 0 10px;font-weight:600;color:var(--text)}
+#home-calendar .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+#home-calendar .cal-hdr{font-size:11px;color:var(--text-muted);padding:2px 0;font-weight:500}
+#home-calendar .cal-day{position:relative;padding:4px 0;cursor:default;border-radius:6px;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:2px}
+#home-calendar .cal-day:hover{background:var(--accent-light)}
+#home-calendar .cal-num{font-size:13px;color:var(--text);font-weight:500;line-height:1}
+#home-calendar .cal-blk{width:4px;height:4px;border-radius:50%;background:transparent}
+#home-calendar .cal-day.c1 .cal-blk{background:var(--accent);opacity:.5}
+#home-calendar .cal-day.c2 .cal-blk{background:var(--accent);width:6px;height:6px;opacity:.7}
+#home-calendar .cal-day.c3 .cal-blk{background:var(--accent);width:8px;height:8px}
+#home-calendar .cal-day.today .cal-num{color:var(--bg);background:var(--accent);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+#home-calendar .cal-empty{visibility:hidden}
+.dash-muted{font-size:13px;color:var(--text-muted)}
+@media(max-width:600px){.dash-stats{gap:12px}.dash-heatmap{padding-left:12px}}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    var cw=document.getElementById('home-calendar');
+    if(!cw) return;
+    var n=new Date(),y=n.getFullYear(),m=n.getMonth()+1;
+    fetch('/api/calendar?year='+y+'&month='+m).then(function(r){return r.json()}).then(function(d){
+        var dim=new Date(d.year,d.month,0).getDate(),fd=new Date(d.year,d.month-1,1).getDay();
+        var names=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+        var h='<div class=\"cal-head\">'+d.year+' '+names[d.month-1]+'</div><div class=\"cal-grid\">';
+        ['日','一','二','三','四','五','六'].forEach(function(w){h+='<span class=\"cal-hdr\">'+w+'</span>'});
+        for(var i=0;i<fd;i++) h+='<span class=\"cal-empty\"></span>';
+        for(var day=1;day<=dim;day++){
+            var k=(day<10?'0':'')+day,cnt=d.counts[k]||0;
+            var cls='cal-day';
+            if(cnt===1) cls+=' c1'; else if(cnt===2) cls+=' c2'; else if(cnt>=3) cls+=' c3';
+            if(day===n.getDate()&&m===n.getMonth()+1&&y===n.getFullYear()) cls+=' today';
+            h+='<span class=\"'+cls+'\"><span class=\"cal-num\">'+day+'</span><span class=\"cal-blk\"></span></span>';
+        }
+        cw.innerHTML=h+'</div>';
+        if(typeof lucide !== 'undefined') lucide.createIcons();
+    }).catch(function(){cw.innerHTML='<span class=\"dash-muted\">加载失败</span>'});
+})();
+</script>
+{% endblock %}
