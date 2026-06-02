@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{% if item_type == 'inspiration' %}写作 - {{ site_name }}{% else %}动态 - {{ site_name }}{% endif %}{% endblock %}
+{% block content %}
+<article class="item-detail reveal">
+    <div class="item-detail-inner">
+        <div class="item-detail-head">
+            <span class="item-detail-badge {% if item_type == 'inspiration' %}badge-idea{% else %}badge-moment{% endif %}">
+                {% if item_type == 'inspiration' %}写作{% else %}动态{% endif %}
+            </span>
+            <time class="item-detail-time">{{ item.created_at[:16] }}</time>
+            <a href="{% if item_type == 'inspiration' %}/moment{% else %}/moment{% endif %}" class="item-detail-back">
+                <i data-lucide="arrow-left" style="width:14px;height:14px"></i> 返回
+            </a>
+        </div>
+
+        <div class="item-detail-body">
+            {{ item.content }}
+        </div>
+
+        {% if item_type == 'inspiration' and item.tags %}
+        <div class="item-detail-tags">
+            {% for t in item.tags.split(',') %}
+            <span class="tag">{{ t.strip() }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="item-detail-actions">
+            {% if item_type == 'inspiration' %}
+            <a href="{{ url_for('inspiration_edit', iid=item.id) }}" class="btn-del-icon" title="编辑"><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+            <form action="{{ url_for('inspiration_delete', iid=item.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除？')">
+                <button type="submit" class="btn-del-icon" title="删除"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+            </form>
+            {% else %}
+            <a href="{{ url_for('moment_edit', mid=item.id) }}" class="btn-del-icon" title="编辑"><i data-lucide="pencil" style="width:14px;height:14px"></i></a>
+            <form action="{{ url_for('moment_delete', mid=item.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除？')">
+                <button type="submit" class="btn-del-icon" title="删除"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</article>
+
+<style>
+.item-detail{max-width:800px;margin:0 auto 40px;padding-top:20px}
+.item-detail-inner{background:var(--surface);border-radius:14px;padding:28px 32px;box-shadow:var(--neu-raise)}
+.item-detail-head{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--divider)}
+.item-detail-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em}
+.badge-idea{background:rgba(92,97,77,0.12);color:var(--green)}
+.badge-moment{background:var(--accent-light);color:var(--accent)}
+.item-detail-time{font-size:13px;color:var(--text-muted);flex:1}
+.item-detail-back{font-size:13px;color:var(--text-muted);display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:color .2s}
+.item-detail-back:hover{color:var(--accent)}
+.item-detail-body{font-family:var(--font-serif);font-size:16px;line-height:1.8;color:var(--text);white-space:pre-wrap;word-break:break-word;margin-bottom:16px}
+.item-detail-tags{display:flex;gap:6px;margin-bottom:14px}
+.item-detail-actions{padding-top:14px;border-top:1px solid var(--divider)}
+@media(max-width:480px){
+  .item-detail-inner{padding:20px 18px}
+  .item-detail-body{font-size:15px}
+}
+</style>
+{% endblock %}
