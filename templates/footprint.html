@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}足迹 - {{ site_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="面包屑导航">
+    <a href="/"><i data-lucide="home" style="width:12px;height:12px"></i></a>
+    <span class="bc-sep">/</span>
+    <span class="bc-current">足迹</span>
+</nav>
+<div class="page-head">
+    <h1 class="page-title"><i data-lucide="map-pin"></i> 足迹</h1>
+    <a href="{{ url_for('footprint_add') }}" class="btn btn-primary"><i data-lucide="plus" style="width:14px;height:14px"></i> 添加足迹</a>
+</div>
+
+{% if footprints|length == 0 %}
+<div class="empty">
+    <p>还没有留下足迹。去记录你走过的路吧。</p>
+</div>
+{% else %}
+<div class="fp-timeline">
+    {% set ns = namespace(current_year='', current_month='') %}
+    {% for fp in footprints %}
+        {% set fp_year = fp.date[:4] if fp.date else '' %}
+        {% set fp_month = fp.date[5:7] if fp.date and fp.date|length >= 7 else '' %}
+
+        {% if fp_year and fp_year != ns.current_year %}
+            {% set ns.current_year = fp_year %}
+            {% set ns.current_month = '' %}
+            <div class="fp-year">{{ fp_year }}<span class="fp-year-sub">年</span></div>
+        {% endif %}
+
+        {% if fp_month and fp_month != ns.current_month %}
+            {% set ns.current_month = fp_month %}
+            {% set month_names = {'01':'一月','02':'二月','03':'三月','04':'四月','05':'五月','06':'六月','07':'七月','08':'八月','09':'九月','10':'十月','11':'十一月','12':'十二月'} %}
+            <div class="fp-month">· {{ month_names.get(fp_month, fp_month + '月') }}</div>
+        {% endif %}
+
+        <a href="{{ url_for('footprint_detail', fid=fp.id) }}" class="fp-item reveal">
+            <span class="fp-marker"><span class="fp-dot"></span></span>
+            {% if fp.image_url %}
+            <span class="fp-thumb"><img src="{{ fp.image_url }}" alt="" loading="lazy"></span>
+            {% endif %}
+            <span class="fp-info">
+                <span class="fp-date">{{ fp.date[5:] if fp.date and fp.date|length >= 10 else fp.date }}</span>
+                {% if fp.location %}<span class="fp-loc">{{ fp.location }}</span>{% endif %}
+                <span class="fp-desc">{{ (fp.description[:60] + '…') if fp.description and fp.description|length > 60 else fp.description }}</span>
+            </span>
+        </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
