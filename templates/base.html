@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
+    <!-- Anti-flash: apply theme before render -->
+    <script>!function(){var e=localStorage.getItem('theme');(e==='dark'||(!e&&window.matchMedia('(prefers-color-scheme:dark)').matches))?document.documentElement.setAttribute('data-theme','dark'):document.documentElement.setAttribute('data-theme','light')}()</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=16">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="alternate icon" href="{{ url_for('static', filename='favicon.svg') }}">
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+    <style>
+    .lucide{display:inline-block;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+    .lb-icon .lucide{width:16px;height:16px}
+    .page-title .lucide{width:20px;height:20px;margin-right:8px}
+    .about-section-icon .lucide{width:20px;height:20px}
+    .sb-title .lucide{width:12px;height:12px;margin-right:4px}
+    .home-section-title .lucide{width:16px;height:16px;margin-right:6px}
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div id="progress"></div>
+
+    <!-- ═══ Navigation ═══ -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">{{ site_name }}</a>
+            <div class="nav-actions">
+                <form class="nav-search" action="/" method="GET">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" name="q" placeholder="搜索" value="{{ keyword|default('') }}">
+                </form>
+                <button id="theme-toggle" class="theme-btn" title="切换主题" aria-label="切换主题">
+                    <svg class="sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    <svg class="moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══ Slide Sidebar ═══ -->
+    <aside class="slide-sidebar" id="slideSidebar">
+        <div class="slide-trigger" aria-label="展开侧边栏">
+            <i data-lucide="chevron-left"></i>
+        </div>
+        <div class="slide-panel">
+            <button class="slide-close" id="slideClose" aria-label="关闭侧边栏">
+                <i data-lucide="x"></i>
+            </button>
+
+            <!-- Navigation -->
+            <div class="slide-section">
+                <nav class="slide-nav">
+                    <a href="/" class="slide-nav-link"><i data-lucide="home"></i> 首页</a>
+                    <a href="/writing" class="slide-nav-link"><i data-lucide="pen-square"></i> 写作</a>
+                    <a href="/archive" class="slide-nav-link"><i data-lucide="archive"></i> 归档</a>
+                    {% if is_auth %}<a href="/moment" class="slide-nav-link"><i data-lucide="message-square-text"></i> 动态</a>{% endif %}
+                    <a href="/footprint" class="slide-nav-link"><i data-lucide="map-pin"></i> 足迹</a>
+                    <a href="/collection" class="slide-nav-link"><i data-lucide="bookmark"></i> 收藏</a>
+                    <a href="/media" class="slide-nav-link"><i data-lucide="music"></i> 歌单</a>
+                    <a href="/about" class="slide-nav-link"><i data-lucide="user"></i> 关于</a>
+                    <a href="/admin" class="slide-nav-link"><i data-lucide="settings"></i> 管理</a>
+                </nav>
+            </div>
+
+            <!-- Recent Articles -->
+            <div class="slide-section">
+                <h4 class="slide-section-title">
+                    <i data-lucide="file-text"></i> 最近文章
+                </h4>
+                <div class="slide-recent">
+                    {% if recent_articles is defined and recent_articles %}
+                        {% for a in recent_articles[:5] %}
+                        <a href="{{ url_for('article_page', article_id=a.id) }}" class="slide-recent-item">{{ a.title }}</a>
+                        {% endfor %}
+                    {% else %}
+                        <span class="slide-muted">暂无文章</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="slide-section">
+                <div class="slide-actions">
+                    <a href="/editor" class="slide-btn">
+                        <i data-lucide="pen-square"></i> 写文章
+                    </a>
+                    <a href="/footprint/add" class="slide-btn">
+                        <i data-lucide="map-pin"></i> 传照片
+                    </a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══ Main Content ═══ -->
+    {% if error_404 %}
+    <main class="page-404">
+        <h1>404</h1>
+        <p>页面不存在。也许它从未被写下，或已随风而去。</p>
+        <a href="/" class="btn">回到首页</a>
+    </main>
+    {% else %}
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    <footer class="footer">
+        <p>{{ site_name }} · 用文字对抗遗忘 · <a href="/admin" style="color:var(--text-muted);text-decoration:underline;font-size:12px">管理</a></p>
+    </footer>
+
+    <script>
+    // Scroll: throttle with rAF — progress + nav shadow combined
+    (function(){
+        var p=document.getElementById('progress'), n=document.getElementById('nav'), ticking=false;
+        function update(){
+            var st=window.scrollY,
+                sh=document.documentElement.scrollHeight-document.documentElement.clientHeight;
+            p.style.setProperty('--pct',sh>0?(st/sh)*100+'%':'0%');
+            n.classList.toggle('nav-scrolled',st>20);
+            ticking=false;
+        }
+        window.addEventListener('scroll',function(){
+            if(!ticking){requestAnimationFrame(update);ticking=true}
+        },{passive:true});
+    })();
+
+    // Scroll reveal — with 3s fallback
+    (function(){
+        var els=document.querySelectorAll('.reveal');
+        var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible')})},{threshold:0.08});
+        els.forEach(function(el){obs.observe(el)});
+        // Safety fallback: if IntersectionObserver never fires (JS error elsewhere),
+        // reveal everything after 3s so content is never permanently hidden
+        setTimeout(function(){
+            var stillHidden=document.querySelectorAll('.reveal:not(.visible)');
+            for(var i=0;i<stillHidden.length;i++) stillHidden[i].classList.add('visible');
+        },3000);
+    })();
+
+    // Lucide icons
+    lucide.createIcons();
+
+    // Dark mode toggle
+    (function(){
+        var html=document.documentElement,btn=document.getElementById('theme-toggle');
+        btn.addEventListener('click',function(){
+            var next=html.getAttribute('data-theme')==='dark'?'light':'dark';
+            html.setAttribute('data-theme',next);
+            localStorage.setItem('theme',next);
+        });
+        window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){
+            if(!localStorage.getItem('theme')){
+                html.setAttribute('data-theme',e.matches?'dark':'light');
+            }
+        });
+    })();
+
+    // Slide sidebar
+    (function(){
+        var sidebar=document.getElementById('slideSidebar');
+        var trigger=sidebar.querySelector('.slide-trigger');
+        var closeBtn=document.getElementById('slideClose');
+        var pinned=false;
+
+        // Hover handled by CSS :hover on .slide-sidebar
+        // Click trigger to toggle pin
+        trigger.addEventListener('click',function(e){
+            e.stopPropagation();
+            pinned=!pinned;
+            sidebar.classList.toggle('pinned');
+        });
+
+        // Close button always unpins
+        if(closeBtn){
+            closeBtn.addEventListener('click',function(){
+                pinned=false;
+                sidebar.classList.remove('pinned');
+            });
+        }
+
+        // Click outside while pinned → unpin and collapse
+        document.addEventListener('click',function(e){
+            if(pinned && !sidebar.contains(e.target)){
+                pinned=false;
+                sidebar.classList.remove('pinned');
+            }
+        });
+
+        // On mouse leave, if not pinned, ensure CSS hover is the only thing keeping it open
+        // CSS :hover handles the visual; just make sure pinned class isn't stuck
+        sidebar.addEventListener('mouseleave',function(){
+            if(!pinned) sidebar.classList.remove('pinned');
+        });
+    })();
+
+    // Re-draw Lucide icons after dynamic content loads
+    if(typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
