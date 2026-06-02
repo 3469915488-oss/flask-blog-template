@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}归档 - {{ site_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="面包屑导航">
+    <a href="/"><i data-lucide="home" style="width:12px;height:12px"></i></a>
+    <span class="bc-sep">/</span>
+    <span class="bc-current">归档</span>
+</nav>
+
+<h1 class="page-title"><i data-lucide="archive"></i> 归档</h1>
+
+<div class="archive-summary">
+    <div class="arch-stat">
+        <span class="arch-num">{{ total_articles }}</span>
+        <span class="arch-lbl">篇文章</span>
+    </div>
+    <div class="arch-stat">
+        <span class="arch-num">{{ '{:.1f}'.format(total_words / 10000) }}</span>
+        <span class="arch-lbl">万字</span>
+    </div>
+</div>
+
+<div class="archive-list">
+    {% for ym in sorted_months %}
+    {% set items = archive_data[ym] %}
+    <div class="arch-month">
+        <div class="arch-month-head">
+            <span class="arch-month-label">{{ ym[:4] }} 年 {{ ym[5:] }} 月</span>
+            <span class="arch-month-count">{{ items|length }} 篇</span>
+        </div>
+        <div class="arch-entries">
+            {% for a in items %}
+            <a href="{{ url_for('article_page', article_id=a.id) }}" class="arch-entry reveal">
+                <div class="arch-entry-main">
+                    <span class="arch-entry-title">{{ a.title }}</span>
+                    {% if a.category_name %}
+                    <span class="arch-entry-cat">{{ a.category_name }}</span>
+                    {% endif %}
+                </div>
+                <div class="arch-entry-meta">
+                    <span>{{ a.created_at[5:10] }}</span>
+                    <span>{{ a.word_count }} 字</span>
+                    <span>{{ a.reading_time }} 分钟</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty"><p>还没有文章。</p></div>
+    {% endfor %}
+</div>
+
+<style>
+.archive-summary{display:flex;gap:24px;margin-bottom:28px}
+.arch-stat{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px;background:var(--surface);padding:16px 24px;border-radius:12px;box-shadow:var(--neu-raise)}
+.arch-num{font-size:26px;font-weight:700;color:var(--accent);line-height:1}
+.arch-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+.archive-list{max-width:800px;margin:0 auto}
+.arch-month{margin-bottom:28px}
+.arch-month-head{display:flex;align-items:baseline;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--divider)}
+.arch-month-label{font-size:16px;font-weight:600;color:var(--text)}
+.arch-month-count{font-size:12px;color:var(--text-muted)}
+
+.arch-entries{display:flex;flex-direction:column;gap:4px}
+.arch-entry{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;text-decoration:none;color:inherit;transition:all .15s;gap:12px}
+.arch-entry:hover{background:var(--surface);box-shadow:var(--neu-raise);padding:8px 14px;margin:0 -2px}
+.arch-entry-main{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.arch-entry-title{font-size:14px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arch-entry-cat{font-size:10px;padding:1px 7px;border-radius:4px;background:var(--accent-light);color:var(--accent);white-space:nowrap;flex-shrink:0}
+.arch-entry-meta{display:flex;gap:10px;flex-shrink:0;font-size:11px;color:var(--text-muted)}
+.arch-entry-meta span{white-space:nowrap}
+
+@media(max-width:600px){
+    .arch-entry{flex-direction:column;align-items:flex-start;gap:4px}
+    .arch-entry-meta{font-size:10px}
+}
+</style>
+{% endblock %}
