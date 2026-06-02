@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}收藏 - {{ site_name }}{% endblock %}
+{% block content %}
+<h1 class="page-title"><i data-lucide="bookmark"></i> 收藏</h1>
+
+<!-- Add form -->
+<div class="admin-section">
+    <h2>添加收藏</h2>
+    <form action="{{ url_for('collection_add') }}" method="POST" class="inline-form">
+        <input type="text" name="title" placeholder="名称" required>
+        <input type="url" name="url" placeholder="URL 链接" required>
+        <input type="text" name="type" placeholder="分类（好文、工具…）" value="article" style="width:120px">
+        <input type="text" name="note" placeholder="备注（可选）">
+        <button type="submit" class="btn btn-primary">添加</button>
+    </form>
+</div>
+
+{% if collection_types %}
+<div class="collection-grid">
+    {% for ctype in collection_types %}
+    <div class="admin-section">
+        <h2>{{ ctype }}</h2>
+        {% set items = all_collection_items | selectattr('type', 'equalto', ctype) | list %}
+        {% if items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>标题</th>
+                    <th>备注</th>
+                    <th width="60"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td><a href="{{ item.url }}" target="_blank" rel="noopener" class="collection-link">{{ item.title }}</a></td>
+                    <td class="collection-note">{{ item.note or '' }}</td>
+                    <td>
+                        <a href="{{ url_for('collection_edit', cid=item.id) }}" class="btn-del-icon" title="编辑"><i data-lucide="pencil" style="width:13px;height:13px"></i></a>
+                        <form action="{{ url_for('collection_delete', cid=item.id) }}" method="POST" style="display:inline" onsubmit="return confirm('确认删除？')">
+                            <button type="submit" class="btn-del-icon" title="删除"><i data-lucide="trash-2" style="width:13px;height:13px"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="home-empty">暂无</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+    <p>还没有收藏。添加一些有用的链接吧。</p>
+</div>
+{% endif %}
+{% endblock %}
