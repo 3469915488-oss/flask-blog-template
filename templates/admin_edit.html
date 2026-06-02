@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}编辑{{ entity }} - {{ site_name }}{% endblock %}
+{% block content %}
+<h1 class="page-title"><i data-lucide="pencil"></i> 编辑{{ entity }}</h1>
+
+<div class="admin-page">
+    <div class="admin-section">
+        <form method="POST" class="inline-form" enctype="multipart/form-data">
+            {% for field in fields %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {% if field.name == 'cover_url' %}
+                <input type="text" name="cover_url" value="{{ field.value }}">
+                <input type="file" name="cover_file" accept="image/*" class="edit-cover-file">
+                {% if field.value %}
+                <div class="edit-cover-preview">
+                    <img src="{{ field.value }}" alt="封面预览" onerror="this.parentElement.style.display='none'">
+                </div>
+                {% endif %}
+                {% else %}
+                <input type="text" name="{{ field.name }}" value="{{ field.value }}"{% if field.name != 'note' and field.name != 'episode' and field.name != 'link_url' and field.name != 'sort_order' %} required{% endif %}>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <div class="form-actions" style="margin-top:12px">
+                <button type="submit" class="btn btn-primary"><i data-lucide="save" style="width:14px;height:14px"></i> 保存</button>
+                <a href="{{ url_for('admin') }}" class="btn"><i data-lucide="x" style="width:14px;height:14px"></i> 取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.edit-cover-file{margin-top:6px;padding:6px 10px;font-size:13px;border:none;border-radius:6px;background:var(--surface);cursor:pointer;display:block}
+.edit-cover-file::-webkit-file-upload-button{padding:4px 10px;border:none;border-radius:6px;background:var(--accent);color:var(--text-on-accent);font-size:12px;cursor:pointer}
+.edit-cover-preview{margin-top:8px;max-width:120px;border-radius:8px;overflow:hidden;box-shadow:var(--neu-raise)}
+.edit-cover-preview img{width:100%;display:block}
+</style>
+
+<script>lucide.createIcons();</script>
+{% endblock %}
