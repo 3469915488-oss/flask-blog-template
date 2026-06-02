@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}关于 - {{ site_name }}{% endblock %}
+{% block content %}
+<h1 class="page-title"><i data-lucide="user"></i> 关于</h1>
+
+<div class="about-wrap">
+    {% if request.args.get('edit') %}
+    {# ═══ Edit Mode ═══ #}
+    <div class="admin-section">
+        <h2>编辑个人资料</h2>
+        <form action="{{ url_for('about_save') }}" method="POST">
+            <div class="form-group">
+                <label for="bio">个人简介</label>
+                <textarea id="bio" name="bio" rows="4" placeholder="写一段关于自己的介绍…">{{ about.bio if about and about.bio else '一个热爱文字和生活的记录者。\n\n在这里，用文字对抗遗忘，用镜头定格时光。' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="contact">联系方式</label>
+                <textarea id="contact" name="contact" rows="3" placeholder="邮箱、GitHub、Twitter 等…">{{ about.contact if about and about.contact else '📧 email@example.com\n🐙 github.com/example' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="experience">经历</label>
+                <textarea id="experience" name="experience" rows="5" placeholder="工作、学习或人生中的重要经历…">{{ about.experience if about and about.experience else '🎓 某大学 · 计算机科学\n💼 某公司 · 产品开发\n✈️ 去过一些地方，见过一些风景' }}</textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="{{ url_for('about') }}" class="btn">取消</a>
+            </div>
+        </form>
+    </div>
+
+    {% else %}
+    {# ═══ Display Mode ═══ #}
+    <div class="about-card">
+        <div class="about-section">
+            <div class="about-section-icon"><i data-lucide="file-text"></i></div>
+            <h2 class="about-section-title">个人简介</h2>
+            <div class="about-content">
+                {% if about and about.bio %}
+                {{ about.bio|replace('\n', '<br>')|safe }}
+                {% else %}
+                <p class="about-placeholder">一个热爱文字和生活的记录者。</p>
+                <p class="about-placeholder">在这里，用文字对抗遗忘，用镜头定格时光。</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="about-section">
+            <div class="about-section-icon"><i data-lucide="mail"></i></div>
+            <h2 class="about-section-title">联系方式</h2>
+            <div class="about-content">
+                {% if about and about.contact %}
+                {{ about.contact|replace('\n', '<br>')|safe }}
+                {% else %}
+                <p class="about-placeholder">email@example.com</p>
+                <p class="about-placeholder">github.com/example</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="about-section">
+            <div class="about-section-icon"><i data-lucide="leaf"></i></div>
+            <h2 class="about-section-title">经历</h2>
+            <div class="about-content">
+                {% if about and about.experience %}
+                {{ about.experience|replace('\n', '<br>')|safe }}
+                {% else %}
+                <p class="about-placeholder">某大学 · 计算机科学</p>
+                <p class="about-placeholder">某公司 · 产品开发</p>
+                <p class="about-placeholder">去过一些地方，见过一些风景</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="about-actions">
+            <a href="{{ url_for('about', edit=1) }}" class="btn">编辑资料</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}{% block extra_head %}{% endblock %}
