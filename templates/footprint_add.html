@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}添加足迹 - {{ site_name }}{% endblock %}
+{% block content %}
+<div class="page-narrow">
+    <h1 class="page-title"><i data-lucide="map-pin"></i> 添加足迹</h1>
+
+    <div class="admin-section">
+        <form action="{{ url_for('footprint_add') }}" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="image">照片</label>
+                <div class="upload-area" onclick="document.getElementById('image').click()">
+                    <span id="upload-label">点击选择图片</span>
+                    <input type="file" id="image" name="image" accept="image/*" style="display:none" onchange="document.getElementById('upload-label').textContent = this.files[0] ? this.files[0].name : '点击选择图片'">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="location">地点</label>
+                <input type="text" id="location" name="location" placeholder="例如：颐和园" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">描述</label>
+                <textarea id="description" name="description" rows="4" placeholder="记录此刻的感受…" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="date">日期</label>
+                <input type="date" id="date" name="date" value="{{ today }}" required>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存足迹</button>
+                <a href="{{ url_for('footprint') }}" class="btn">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}{% block extra_head %}{% endblock %}
