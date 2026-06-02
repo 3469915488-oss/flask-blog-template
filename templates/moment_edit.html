@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}编辑动态 - {{ site_name }}{% endblock %}
+{% block content %}
+<h1 class="page-title"><i data-lucide="pencil"></i> 编辑动态</h1>
+
+<div class="moment-post-box">
+    <form action="{{ url_for('moment_edit', mid=moment.id) }}" method="POST" enctype="multipart/form-data">
+        <textarea name="content" rows="3" class="moment-text" required>{{ moment.content }}</textarea>
+
+        <div class="moment-mood-row">
+            {% for icon, label in mood_choices %}
+            <label class="mood-opt{% if moment.mood == icon %} active{% elif loop.first and not moment.mood %} active{% endif %}">
+                <input type="radio" name="mood" value="{{ icon }}"{% if moment.mood == icon %} checked{% elif loop.first and not moment.mood %} checked{% endif %} hidden>
+                <i data-lucide="{{ icon }}" style="width:15px;height:15px"></i>
+                <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="moment-post-actions">
+            <label class="btn btn-sm photo-btn" for="moment-image-input">
+                <i data-lucide="image" style="width:14px;height:14px"></i> 更换配图
+            </label>
+            <input type="file" id="moment-image-input" name="image" accept="image/*" hidden>
+            <span id="moment-file-name" class="moment-file-name">{% if moment.image_url %}已有配图{% endif %}</span>
+            <input type="hidden" name="image_url" value="{{ moment.image_url or '' }}">
+            <button type="submit" class="btn btn-primary"><i data-lucide="save" style="width:14px;height:14px"></i> 保存</button>
+            <a href="{{ url_for('moment') }}" class="btn">取消</a>
+        </div>
+    </form>
+</div>
+
+{% if moment.image_url %}
+<div class="moment-img-preview">
+    <img src="{{ moment.image_url }}" alt="当前配图" style="max-width:400px;border-radius:8px">
+</div>
+{% endif %}
+
+<script>
+(function(){
+    var input = document.getElementById('moment-image-input');
+    var nameSpan = document.getElementById('moment-file-name');
+    if(input && nameSpan) {
+        input.addEventListener('change', function(){
+            if(this.files[0]) {
+                nameSpan.textContent = this.files[0].name;
+            }
+        });
+    }
+
+    var opts = document.querySelectorAll('.mood-opt');
+    opts.forEach(function(el){
+        el.addEventListener('click', function(){
+            opts.forEach(function(o){ o.classList.remove('active'); });
+            this.classList.add('active');
+        });
+    });
+
+    lucide.createIcons();
+})();
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.moment-post-box{max-width:640px;margin:0 auto 24px;background:var(--surface);border-radius:12px;padding:16px 20px;box-shadow:var(--neu-raise)}
+.moment-text{width:100%;padding:10px 0;border:none;resize:vertical;font-family:var(--font-sans);font-size:14px;background:transparent;color:var(--text);outline:none;line-height:1.6}
+.moment-mood-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 6px}
+.mood-opt{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-muted);background:var(--bg);border:1px solid transparent;transition:all .15s}
+.mood-opt:hover{color:var(--accent);background:var(--accent-light)}
+.mood-opt.active{color:var(--accent);background:var(--accent-light);border-color:var(--accent)}
+.moment-post-actions{display:flex;align-items:center;gap:8px;margin-top:8px;justify-content:flex-end}
+.photo-btn{cursor:pointer}
+.moment-file-name{font-size:11px;color:var(--text-muted);flex:1}
+.moment-img-preview{max-width:640px;margin:0 auto;text-align:center}
+</style>
+{% endblock %}
